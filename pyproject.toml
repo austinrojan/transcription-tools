@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transcription-tools"
+version = "2.0.0"
+description = "macOS audio transcription with Finder integration"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "openai-whisper",
+    "faster-whisper",
+    "openai",
+    "torch",
+]
+
+[project.scripts]
+transcribe-veryfast = "transcription_tools.cli:veryfast"
+transcribe-fast = "transcription_tools.cli:fast"
+transcribe-medium = "transcription_tools.cli:medium"
+transcribe-slow = "transcription_tools.cli:slow"
+transcribe-veryslow = "transcription_tools.cli:veryslow"
