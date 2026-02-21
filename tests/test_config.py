@@ -7,9 +7,39 @@ from transcription_tools.config import (
     DEFAULT_CLEANUP_MODEL,
     TIERS,
     TranscriptionTier,
+    FasterWhisperParams,
+    OpenAIWhisperParams,
 )
 
 EXPECTED_TIERS = ["veryfast", "fast", "medium", "slow", "veryslow"]
+
+
+class TestBackendParams:
+    def test_faster_whisper_params_is_frozen(self):
+        params = FasterWhisperParams()
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            params.vad_filter = True
+
+    def test_openai_whisper_params_is_frozen(self):
+        params = OpenAIWhisperParams()
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            params.verbose = True
+
+    def test_faster_whisper_params_defaults(self):
+        params = FasterWhisperParams()
+        assert params.language is None
+        assert params.vad_filter is False
+        assert params.vad_params is None
+        assert params.without_timestamps is True
+        assert params.compute_type_gpu == "int8_float16"
+        assert params.compute_type_cpu == "int8"
+
+    def test_openai_whisper_params_defaults(self):
+        params = OpenAIWhisperParams()
+        assert params.initial_prompt is None
+        assert params.verbose is False
+        assert params.fp16_on_gpu is True
+        assert params.signal_handling is False
 
 
 class TestTiersExist:

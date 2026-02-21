@@ -12,6 +12,26 @@ from typing import Literal
 
 
 @dataclass(frozen=True)
+class FasterWhisperParams:
+    """Parameters specific to the faster-whisper (CTranslate2) backend."""
+    language: str | None = None
+    vad_filter: bool = False
+    vad_params: MappingProxyType | None = None
+    without_timestamps: bool = True
+    compute_type_gpu: str = "int8_float16"
+    compute_type_cpu: str = "int8"
+
+
+@dataclass(frozen=True)
+class OpenAIWhisperParams:
+    """Parameters specific to the OpenAI whisper backend."""
+    initial_prompt: str | None = None
+    verbose: bool = False
+    fp16_on_gpu: bool = True
+    signal_handling: bool = False
+
+
+@dataclass(frozen=True)
 class TranscriptionTier:
     name: str
     label: str
