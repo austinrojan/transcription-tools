@@ -64,6 +64,35 @@ def response_is_valid(response: str, original_word_count: int) -> bool:
     return not any(phrase in prefix for phrase in META_PHRASES)
 
 
+def build_cleanup_prompt(chunk_text: str, chunk_idx: int, total: int) -> str:
+    """Build the system prompt for a cleanup API call."""
+    word_count = len(chunk_text.split())
+    correction_lines = "\n".join(
+        f"- '{old.strip()}' -> '{new}'" for old, new in TERM_CORRECTIONS
+    )
+    return (
+        f"CRITICAL WORD COUNT REQUIREMENT\n"
+        f"Input: {word_count} words\n"
+        f"Output MUST be: {int(word_count * WORD_COUNT_TOLERANCE_LOW)}"
+        f"-{int(word_count * WORD_COUNT_TOLERANCE_HIGH)} words\n\n"
+        "YOUR ONLY TASK: Fix spelling, grammar, and formatting errors.\n"
+        "This is EDITING, not summarizing.\n\n"
+        "FORBIDDEN:\n"
+        "- NO summarizing or condensing\n"
+        "- NO skipping content\n"
+        "- NO headers like 'Here is the cleaned transcript'\n"
+        "- NO meta-commentary\n"
+        "- NO bullet points unless explicitly spoken\n"
+        "- NO repeating sentences\n\n"
+        f"REQUIRED FIXES:\n{correction_lines}\n"
+        "- Add punctuation and paragraph breaks\n"
+        "- Fix repeated words\n"
+        "- Preserve ALL technical terms, numbers, examples\n\n"
+        "OUTPUT: Start with first word, end with last word. No commentary.\n\n"
+        f"Transcript chunk {chunk_idx}/{total}:\n\n{chunk_text}"
+    )
+
+
 class TranscriptCleaner:
     """Cleans raw Whisper transcripts via the OpenAI chat API."""
 
@@ -85,35 +114,6 @@ class TranscriptCleaner:
         )
         self._consecutive_rate_limits = 0
         self._rate_limit_wait_seconds = DEFAULT_RATE_LIMIT_WAIT_SECONDS
-
-    # -- Prompt building -------------------------------------------------
-
-    def _build_prompt(self, chunk_text: str, chunk_idx: int, total: int) -> str:
-        word_count = len(chunk_text.split())
-        correction_lines = "\n".join(
-            f"- '{old.strip()}' -> '{new}'" for old, new in TERM_CORRECTIONS
-        )
-        return (
-            f"CRITICAL WORD COUNT REQUIREMENT\n"
-            f"Input: {word_count} words\n"
-            f"Output MUST be: {int(word_count * WORD_COUNT_TOLERANCE_LOW)}"
-            f"-{int(word_count * WORD_COUNT_TOLERANCE_HIGH)} words\n\n"
-            "YOUR ONLY TASK: Fix spelling, grammar, and formatting errors.\n"
-            "This is EDITING, not summarizing.\n\n"
-            "FORBIDDEN:\n"
-            "- NO summarizing or condensing\n"
-            "- NO skipping content\n"
-            "- NO headers like 'Here is the cleaned transcript'\n"
-            "- NO meta-commentary\n"
-            "- NO bullet points unless explicitly spoken\n"
-            "- NO repeating sentences\n\n"
-            f"REQUIRED FIXES:\n{correction_lines}\n"
-            "- Add punctuation and paragraph breaks\n"
-            "- Fix repeated words\n"
-            "- Preserve ALL technical terms, numbers, examples\n\n"
-            "OUTPUT: Start with first word, end with last word. No commentary.\n\n"
-            f"Transcript chunk {chunk_idx}/{total}:\n\n{chunk_text}"
-        )
 
     # -- API interaction -------------------------------------------------
 
@@ -159,7 +159,7 @@ class TranscriptCleaner:
     ) -> str | None:
         """Process a single chunk through OpenAI. Returns cleaned text or None."""
         original_word_count = len(chunk_text.split())
-        prompt = self._build_prompt(chunk_text, chunk_idx, total)
+        prompt = build_cleanup_prompt(chunk_text, chunk_idx, total)
 
         if self._consecutive_rate_limits > 0:
             time.sleep(self._rate_limit_wait_seconds)
