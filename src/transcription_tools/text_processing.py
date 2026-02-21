@@ -37,17 +37,7 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
 
         if len(sentence) > max_chars:
             flush()
-            pos = 0
-            while pos < len(sentence):
-                end = min(pos + max_chars, len(sentence))
-                if end < len(sentence):
-                    space_idx = sentence.rfind(" ", pos, end)
-                    if space_idx > pos:
-                        end = space_idx + 1
-                part = sentence[pos:end].strip()
-                if part:
-                    chunks.append(part)
-                pos = end
+            chunks.extend(split_at_word_boundaries(sentence, max_chars))
             continue
 
         if current_len + len(sentence) + 1 <= max_chars:
@@ -61,6 +51,23 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
     flush()
 
     return chunks
+
+
+def split_at_word_boundaries(text: str, max_chars: int) -> list[str]:
+    """Split text into pieces at whitespace, respecting max_chars."""
+    pieces: list[str] = []
+    pos = 0
+    while pos < len(text):
+        end = min(pos + max_chars, len(text))
+        if end < len(text):
+            space_idx = text.rfind(" ", pos, end)
+            if space_idx > pos:
+                end = space_idx + 1
+        piece = text[pos:end].strip()
+        if piece:
+            pieces.append(piece)
+        pos = end
+    return pieces
 
 
 def sanitize_model_output(text: str) -> str:

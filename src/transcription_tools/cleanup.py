@@ -12,7 +12,11 @@ import re
 import time
 
 from transcription_tools.config import DEFAULT_CLEANUP_MODEL
-from transcription_tools.text_processing import sanitize_model_output, split_into_chunks
+from transcription_tools.text_processing import (
+    sanitize_model_output,
+    split_at_word_boundaries,
+    split_into_chunks,
+)
 
 MAX_CHUNK_CHARS = 2500
 MIN_SUBDIVIDE_CHARS = 1000
@@ -181,23 +185,6 @@ class TranscriptCleaner:
 
     # -- Adaptive chunking -----------------------------------------------
 
-    @staticmethod
-    def _split_at_word_boundaries(text: str, max_chars: int) -> list[str]:
-        """Split text into pieces at whitespace, respecting max_chars."""
-        pieces: list[str] = []
-        pos = 0
-        while pos < len(text):
-            end = min(pos + max_chars, len(text))
-            if end < len(text):
-                space_idx = text.rfind(" ", pos, end)
-                if space_idx > pos:
-                    end = space_idx + 1
-            piece = text[pos:end].strip()
-            if piece:
-                pieces.append(piece)
-            pos = end
-        return pieces
-
     def _process_with_adaptive_chunking(self, text: str, idx: int, total: int) -> str:
         """Try to process a chunk, subdividing on repeated failure."""
         max_chars = len(text)
@@ -215,7 +202,7 @@ class TranscriptCleaner:
                 continue
 
             print(f"[cleanup] chunk {idx}: subdividing to {max_chars} chars")
-            sub_chunks = self._split_at_word_boundaries(text, max_chars)
+            sub_chunks = split_at_word_boundaries(text, max_chars)
             parts = []
             for sub in sub_chunks:
                 sub_result = self._process_chunk(sub, idx, total, attempt + 1)
