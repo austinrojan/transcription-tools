@@ -52,6 +52,18 @@ def apply_basic_cleanup(text: str) -> str:
     return text
 
 
+def response_is_valid(response: str, original_word_count: int) -> bool:
+    """Check word count ratio and absence of meta-commentary."""
+    output_word_count = len(response.split())
+    ratio = output_word_count / original_word_count if original_word_count else 1.0
+
+    if ratio < MIN_ACCEPTABLE_WORD_RATIO:
+        return False
+
+    prefix = response.lower()[:META_CHECK_PREFIX_CHARS]
+    return not any(phrase in prefix for phrase in META_PHRASES)
+
+
 class TranscriptCleaner:
     """Cleans raw Whisper transcripts via the OpenAI chat API."""
 
@@ -113,19 +125,6 @@ class TranscriptCleaner:
         )
         return (response.choices[0].message.content or "").strip()
 
-    @staticmethod
-    def _response_is_valid(response: str, original_word_count: int) -> bool:
-        """Check word count ratio and absence of meta-commentary."""
-        output_word_count = len(response.split())
-        # Guard: empty chunks shouldn't reach here; if they do, accept rather than crash
-        ratio = output_word_count / original_word_count if original_word_count else 1.0
-
-        if ratio < MIN_ACCEPTABLE_WORD_RATIO:
-            return False
-
-        prefix = response.lower()[:META_CHECK_PREFIX_CHARS]
-        return not any(phrase in prefix for phrase in META_PHRASES)
-
     def _handle_api_error(self, exc: Exception, chunk_idx: int) -> None:
         """Handle OpenAI API errors. Re-raises AuthenticationError; returns None for retryable errors."""
         try:
@@ -180,7 +179,7 @@ class TranscriptCleaner:
 
         cleaned = sanitize_model_output(raw)
 
-        if not self._response_is_valid(cleaned, original_word_count):
+        if not response_is_valid(cleaned, original_word_count):
             ratio = len(cleaned.split()) / original_word_count if original_word_count else 0
             print(f"[cleanup] chunk {chunk_idx}: quality issue (ratio={ratio:.2f})")
             return None

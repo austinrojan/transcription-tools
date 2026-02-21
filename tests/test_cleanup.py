@@ -6,6 +6,7 @@ from transcription_tools.cleanup import (
     TERM_CORRECTIONS,
     TranscriptCleaner,
     apply_basic_cleanup,
+    response_is_valid,
 )
 
 
@@ -33,15 +34,15 @@ class TestResponseIsValid:
     """Test the quality-gate validation."""
 
     def test_valid_response(self):
-        assert TranscriptCleaner._response_is_valid("word " * 100, 100) is True
+        assert response_is_valid("word " * 100, 100) is True
 
     def test_too_short_rejected(self):
-        assert TranscriptCleaner._response_is_valid("word " * 50, 100) is False
+        assert response_is_valid("word " * 50, 100) is False
 
     def test_meta_commentary_rejected(self):
         text = "Here is the cleaned transcript: " + "word " * 100
-        assert TranscriptCleaner._response_is_valid(text, 100) is False
+        assert response_is_valid(text, 100) is False
 
     def test_zero_original_words(self):
         # Guard against division by zero — should accept (ratio defaults to 1.0)
-        assert TranscriptCleaner._response_is_valid("some text", 0) is True
+        assert response_is_valid("some text", 0) is True
