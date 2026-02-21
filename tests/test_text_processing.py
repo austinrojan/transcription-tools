@@ -1,8 +1,9 @@
 import pytest
 
 from transcription_tools.text_processing import (
-    split_into_chunks,
     sanitize_model_output,
+    split_at_word_boundaries,
+    split_into_chunks,
 )
 
 
@@ -52,6 +53,34 @@ class TestSplitIntoChunks:
     def test_max_chars_negative_raises(self):
         with pytest.raises(ValueError, match="max_chars must be positive"):
             split_into_chunks("hello", max_chars=-5)
+
+
+class TestSplitAtWordBoundaries:
+    """Test the word-boundary splitting function."""
+
+    def test_empty_string(self):
+        assert split_at_word_boundaries("", 100) == []
+
+    def test_short_text_single_piece(self):
+        assert split_at_word_boundaries("hello world", 100) == ["hello world"]
+
+    def test_splits_at_word_boundary(self):
+        pieces = split_at_word_boundaries("alpha bravo charlie delta", 15)
+        for piece in pieces:
+            assert not piece.startswith(" ")
+            assert not piece.endswith(" ")
+
+    def test_respects_max_chars(self):
+        text = "alpha bravo charlie delta echo foxtrot golf hotel"
+        pieces = split_at_word_boundaries(text, 20)
+        for piece in pieces:
+            assert len(piece) <= 20
+
+    def test_preserves_all_content(self):
+        text = "alpha bravo charlie delta echo foxtrot golf hotel"
+        pieces = split_at_word_boundaries(text, 20)
+        rejoined = " ".join(pieces)
+        assert set(rejoined.split()) == set(text.split())
 
 
 class TestSanitizeModelOutput:

@@ -6,6 +6,7 @@ from transcription_tools.cleanup import (
     TERM_CORRECTIONS,
     TranscriptCleaner,
     apply_basic_cleanup,
+    build_cleanup_prompt,
     response_is_valid,
 )
 
@@ -46,3 +47,26 @@ class TestResponseIsValid:
     def test_zero_original_words(self):
         # Guard against division by zero — should accept (ratio defaults to 1.0)
         assert response_is_valid("some text", 0) is True
+
+
+class TestBuildCleanupPrompt:
+    """Test the extracted prompt-building function."""
+
+    def test_word_count_range_in_prompt(self):
+        text = " ".join(["word"] * 100)
+        prompt = build_cleanup_prompt(text, 1, 1)
+        assert "80" in prompt  # 100 * 0.8
+        assert "120" in prompt  # 100 * 1.2
+
+    def test_chunk_index_in_prompt(self):
+        prompt = build_cleanup_prompt("some text", 3, 7)
+        assert "3/7" in prompt
+
+    def test_term_corrections_listed(self):
+        prompt = build_cleanup_prompt("some text", 1, 1)
+        for old, new in TERM_CORRECTIONS:
+            assert new in prompt
+
+    def test_chunk_text_embedded(self):
+        prompt = build_cleanup_prompt("My unique transcript content", 1, 1)
+        assert "My unique transcript content" in prompt
