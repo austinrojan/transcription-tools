@@ -55,6 +55,8 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
 
 def split_at_word_boundaries(text: str, max_chars: int) -> list[str]:
     """Split text into pieces at whitespace, respecting max_chars."""
+    if max_chars < 1:
+        raise ValueError(f"max_chars must be positive, got {max_chars}")
     pieces: list[str] = []
     pos = 0
     while pos < len(text):

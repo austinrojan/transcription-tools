@@ -82,7 +82,7 @@ class TestSplitAtWordBoundaries:
         text = "alpha bravo charlie delta echo foxtrot golf hotel"
         pieces = split_at_word_boundaries(text, 20)
         rejoined = " ".join(pieces)
-        assert set(rejoined.split()) == set(text.split())
+        assert rejoined == text
 
 
 class TestSanitizeModelOutput:
