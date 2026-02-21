@@ -15,6 +15,7 @@ from transcription_tools.cleanup import TranscriptCleaner
 from transcription_tools.config import (
     ALLOWED_CLEANUP_MODELS,
     DEFAULT_CLEANUP_MODEL,
+    FasterWhisperParams,
     TIERS,
     TranscriptionTier,
 )
@@ -22,8 +23,9 @@ from transcription_tools.transcribe import transcribe
 
 
 def _parse_args(tier: TranscriptionTier) -> argparse.Namespace:
+    backend_name = "faster_whisper" if isinstance(tier.backend_params, FasterWhisperParams) else "whisper"
     parser = argparse.ArgumentParser(
-        description=f"Transcribe audio — {tier.label} tier ({tier.backend}, {tier.whisper_model} model)."
+        description=f"Transcribe audio — {tier.label} tier ({backend_name}, {tier.whisper_model} model)."
     )
     parser.add_argument("input_file", help="Path to the input audio file.")
     cleanup_group = parser.add_mutually_exclusive_group()
