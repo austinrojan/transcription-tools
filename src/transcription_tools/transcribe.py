@@ -12,7 +12,7 @@ import sys
 import time
 from contextlib import contextmanager
 
-from transcription_tools.config import TranscriptionTier
+from transcription_tools.config import FasterWhisperParams, OpenAIWhisperParams, TranscriptionTier
 
 # OpenAI whisper decode parameters (not configurable per-tier)
 WHISPER_PATIENCE = 1.0
@@ -76,7 +76,8 @@ def transcribe_faster_whisper(audio_path: str, tier: TranscriptionTier, device: 
     """Transcribe using the faster-whisper (CTranslate2) backend."""
     from faster_whisper import WhisperModel
 
-    compute_type = tier.compute_type_gpu if device == "cuda" else tier.compute_type_cpu
+    params = tier.backend_params  # FasterWhisperParams
+    compute_type = params.compute_type_gpu if device == "cuda" else params.compute_type_cpu
 
     print(f"[{tier.label}] device={device}, compute_type={compute_type}")
     print(f"Loading faster-whisper model '{tier.whisper_model}'...")
@@ -92,16 +93,16 @@ def transcribe_faster_whisper(audio_path: str, tier: TranscriptionTier, device: 
     start = time.time()
 
     kwargs: dict = {
-        "language": tier.language,
+        "language": params.language,
         "beam_size": tier.beam_size,
         "best_of": tier.best_of,
         "temperature": tier.temperature,
         "condition_on_previous_text": tier.condition_on_previous_text,
-        "without_timestamps": tier.without_timestamps,
-        "vad_filter": tier.vad_filter,
+        "without_timestamps": params.without_timestamps,
+        "vad_filter": params.vad_filter,
     }
-    if tier.vad_params:
-        kwargs["vad_parameters"] = dict(tier.vad_params)
+    if params.vad_params:
+        kwargs["vad_parameters"] = dict(params.vad_params)
 
     segments, info = model.transcribe(audio_path, **kwargs)
     text = " ".join(seg.text.strip() for seg in segments).strip()
@@ -119,7 +120,8 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
     from contextlib import nullcontext
     import whisper
 
-    context = _graceful_exit_handler() if tier.signal_handling else nullcontext()
+    params = tier.backend_params  # OpenAIWhisperParams
+    context = _graceful_exit_handler() if params.signal_handling else nullcontext()
 
     with context:
         print(f"[{tier.label}] device={device}")
@@ -136,7 +138,6 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
 
         result = model.transcribe(
             audio_path,
-            language=tier.language,
             task="transcribe",
             temperature=tier.temperature,
             beam_size=tier.beam_size,
@@ -147,10 +148,10 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
             logprob_threshold=WHISPER_LOGPROB_THRESHOLD,
             no_speech_threshold=WHISPER_NO_SPEECH_THRESHOLD,
             condition_on_previous_text=tier.condition_on_previous_text,
-            initial_prompt=tier.initial_prompt,
+            initial_prompt=params.initial_prompt,
             suppress_tokens=WHISPER_SUPPRESS_TOKENS,
-            verbose=tier.verbose,
-            fp16=(device == "cuda" and tier.fp16_on_gpu),
+            verbose=params.verbose,
+            fp16=(device == "cuda" and params.fp16_on_gpu),
         )
 
         text = (result.get("text") or "").strip()
@@ -161,10 +162,9 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
 
 def transcribe(audio_path: str, tier: TranscriptionTier) -> str:
     """Dispatch to the correct Whisper backend based on tier config."""
-    device = _detect_device(backend=tier.backend)
-    if tier.backend == "faster_whisper":
+    if isinstance(tier.backend_params, FasterWhisperParams):
+        device = _detect_device(backend="faster_whisper")
         return transcribe_faster_whisper(audio_path, tier, device)
-    elif tier.backend == "whisper":
-        return transcribe_openai_whisper(audio_path, tier, device)
     else:
-        raise ValueError(f"Unknown backend: {tier.backend}")
+        device = _detect_device(backend="whisper")
+        return transcribe_openai_whisper(audio_path, tier, device)
