@@ -181,5 +181,11 @@ def transcribe(audio_path: str, tier: TranscriptionTier) -> str:
         device = _detect_device(backend="faster_whisper")
         return transcribe_faster_whisper(audio_path, tier, device)
 
-    device = _detect_device(backend="whisper")
-    return transcribe_openai_whisper(audio_path, tier, device)
+    if isinstance(tier.backend_params, OpenAIWhisperParams):
+        device = _detect_device(backend="whisper")
+        return transcribe_openai_whisper(audio_path, tier, device)
+
+    raise TypeError(
+        f"Unsupported backend_params type: {type(tier.backend_params).__name__}. "
+        "Expected FasterWhisperParams or OpenAIWhisperParams."
+    )
