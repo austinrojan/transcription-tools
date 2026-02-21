@@ -1,3 +1,5 @@
+"""Tests for text processing module."""
+
 import pytest
 
 from transcription_tools.text_processing import (

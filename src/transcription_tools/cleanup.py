@@ -108,10 +108,7 @@ class TranscriptCleaner:
             raise RuntimeError("OPENAI_API_KEY not set in environment")
 
         self._model = model
-        self._client = (
-            OpenAI(api_key=api_key, base_url=base_url) if base_url
-            else OpenAI(api_key=api_key)
-        )
+        self._client = OpenAI(api_key=api_key, base_url=base_url)
         self._consecutive_rate_limits = 0
         self._rate_limit_wait_seconds = DEFAULT_RATE_LIMIT_WAIT_SECONDS
 
@@ -178,14 +175,13 @@ class TranscriptCleaner:
             return self._handle_api_error(exc, chunk_idx)
 
         cleaned = sanitize_model_output(raw)
+        ratio = len(cleaned.split()) / original_word_count if original_word_count else 1.0
 
         if not response_is_valid(cleaned, original_word_count):
-            ratio = len(cleaned.split()) / original_word_count if original_word_count else 0
             print(f"[cleanup] chunk {chunk_idx}: quality issue (ratio={ratio:.2f})")
             return None
 
         self._consecutive_rate_limits = 0
-        ratio = len(cleaned.split()) / original_word_count if original_word_count else 1.0
         print(f"[cleanup] chunk {chunk_idx}/{total}: done (ratio={ratio:.2f})")
         return cleaned
 
