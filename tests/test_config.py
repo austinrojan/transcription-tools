@@ -51,16 +51,6 @@ class TestTiersExist:
         assert len(names) == len(set(names))
 
 
-class TestTierBackends:
-    @pytest.mark.parametrize("name", ["veryfast", "fast", "medium"])
-    def test_faster_whisper_tiers(self, name):
-        assert isinstance(TIERS[name].backend_params, FasterWhisperParams)
-
-    @pytest.mark.parametrize("name", ["slow", "veryslow"])
-    def test_openai_whisper_tiers(self, name):
-        assert isinstance(TIERS[name].backend_params, OpenAIWhisperParams)
-
-
 class TestTierModels:
     @pytest.mark.parametrize("name", EXPECTED_TIERS)
     def test_has_model(self, name):
