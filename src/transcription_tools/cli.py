@@ -49,7 +49,6 @@ def _parse_args(tier: TranscriptionTier) -> argparse.Namespace:
 
 
 def _resolve_cleanup_model(args: argparse.Namespace) -> str:
-    """Determine which OpenAI model to use for cleanup."""
     model = args.openai_model or os.environ.get("OPENAI_MODEL", DEFAULT_CLEANUP_MODEL)
     if model not in ALLOWED_CLEANUP_MODELS:
         print(f"Error: OpenAI model must be one of {sorted(ALLOWED_CLEANUP_MODELS)}; got '{model}'")
@@ -58,7 +57,6 @@ def _resolve_cleanup_model(args: argparse.Namespace) -> str:
 
 
 def _run_transcription(input_path: Path, tier: TranscriptionTier, output_path: Path) -> None:
-    """Convert audio and transcribe, saving result to output_path."""
     print(f"Converting '{input_path.name}' to 16kHz mono WAV...")
     wav_path = convert_to_wav(str(input_path), enhanced=tier.enhanced_audio)
     try:
@@ -75,7 +73,6 @@ def _run_transcription(input_path: Path, tier: TranscriptionTier, output_path: P
 
 
 def _run_cleanup(raw_text: str, model: str, base_url: str | None, output_path: Path) -> None:
-    """Run OpenAI cleanup on transcript text."""
     print(f"[cleanup] Using OpenAI model: {model}")
     cleaner = TranscriptCleaner(model=model, base_url=base_url)
     cleaned = cleaner.clean(raw_text)

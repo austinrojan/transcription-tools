@@ -15,7 +15,7 @@ class FasterWhisperParams:
     """Parameters specific to the faster-whisper (CTranslate2) backend."""
     language: str | None = None
     vad_filter: bool = False
-    vad_params: MappingProxyType | None = None
+    vad_params: MappingProxyType[str, int | float] | None = None
     without_timestamps: bool = True
     compute_type_gpu: str = "int8_float16"
     compute_type_cpu: str = "int8"
