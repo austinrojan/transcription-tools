@@ -44,11 +44,14 @@ def _timed_transcription(tier_label: str):
     result = _TimingResult()
     print(f"Transcribing in {tier_label} mode...")
     start = time.time()
+    success = False
     try:
         yield result
+        success = True
     finally:
         result.elapsed = time.time() - start
-        print(f"Transcription completed in {result.elapsed:.1f}s ({result.elapsed / 60:.1f} min)")
+        status = "completed" if success else "aborted"
+        print(f"Transcription {status} in {result.elapsed:.1f}s ({result.elapsed / 60:.1f} min)")
 
 
 @contextmanager
