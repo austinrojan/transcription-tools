@@ -49,7 +49,21 @@ echo 'export OPENAI_API_KEY="sk-..."' >> ~/.zshrc
 
 ### Right-click (Finder)
 
-Copy the workflows from `workflows/` to `~/Library/Services/`, then right-click any audio file → Quick Actions → choose a tier.
+1. Copy the workflows to your Services folder:
+
+```bash
+cp -R workflows/*.workflow ~/Library/Services/
+```
+
+2. Rebuild the services menu so macOS discovers them:
+
+```bash
+/System/Library/CoreServices/pbs -flush
+```
+
+3. Enable the workflows in **System Settings → General → Login Items & Extensions → Extensions → Finder** — toggle on each "Transcribe Audio" workflow.
+
+Now right-click any audio file → **Quick Actions** → choose a tier.
 
 ### Command line
 
