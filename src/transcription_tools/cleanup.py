@@ -45,6 +45,13 @@ META_PHRASES = [
 ]
 
 
+def apply_basic_cleanup(text: str) -> str:
+    """Regex-based fallback: applies TERM_CORRECTIONS to raw text."""
+    for old, new in TERM_CORRECTIONS:
+        text = re.sub(re.escape(old), new, text, flags=re.IGNORECASE)
+    return text
+
+
 class TranscriptCleaner:
     """Cleans raw Whisper transcripts via the OpenAI chat API."""
 
@@ -206,17 +213,11 @@ class TranscriptCleaner:
             parts = []
             for sub in sub_chunks:
                 sub_result = self._process_chunk(sub, idx, total, attempt + 1)
-                parts.append(sub_result if sub_result else self._apply_basic_cleanup(sub))
+                parts.append(sub_result if sub_result else apply_basic_cleanup(sub))
             return " ".join(parts)
 
         print(f"[cleanup] chunk {idx}: falling back to basic cleanup")
-        return self._apply_basic_cleanup(text)
-
-    @staticmethod
-    def _apply_basic_cleanup(text: str) -> str:
-        for old, new in TERM_CORRECTIONS:
-            text = re.sub(re.escape(old), new, text, flags=re.IGNORECASE)
-        return text
+        return apply_basic_cleanup(text)
 
     # -- Public API -------------------------------------------------------
 

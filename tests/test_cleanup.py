@@ -5,6 +5,7 @@ import pytest
 from transcription_tools.cleanup import (
     TERM_CORRECTIONS,
     TranscriptCleaner,
+    apply_basic_cleanup,
 )
 
 
@@ -12,20 +13,20 @@ class TestApplyBasicCleanup:
     """Test the regex-based fallback cleanup."""
 
     def test_corrects_known_terms(self):
-        result = TranscriptCleaner._apply_basic_cleanup("upload to sub splash")
+        result = apply_basic_cleanup("upload to sub splash")
         assert "Subsplash" in result
 
     def test_case_insensitive(self):
-        result = TranscriptCleaner._apply_basic_cleanup("upload to SUB SPLASH")
+        result = apply_basic_cleanup("upload to SUB SPLASH")
         assert "Subsplash" in result
 
     def test_corrects_contractions(self):
-        result = TranscriptCleaner._apply_basic_cleanup("I gonna do it")
+        result = apply_basic_cleanup("I gonna do it")
         assert "going to" in result
 
     def test_preserves_unmatched_text(self):
         text = "This is normal text without corrections needed."
-        assert TranscriptCleaner._apply_basic_cleanup(text) == text
+        assert apply_basic_cleanup(text) == text
 
 
 class TestResponseIsValid:
