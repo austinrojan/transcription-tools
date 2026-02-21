@@ -60,6 +60,7 @@
 				<dict>
 					<key>COMMAND_STRING</key>
 					<string>export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+[ -f ~/.zshrc ] &amp;&amp; eval "$(grep '^export ' ~/.zshrc 2>/dev/null)"
 
 for f in "$@"
 do

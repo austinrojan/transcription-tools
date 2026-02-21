@@ -44,6 +44,20 @@ def find_ffmpeg() -> str:
     )
 
 
+def _copy_to_temp(input_path: str) -> Path:
+    """Copy input file to a temp directory so ffmpeg can read it.
+
+    On macOS, Automator Quick Actions lack TCC authorization for
+    protected directories (Desktop, Documents, Downloads).  The
+    workflow shell script *can* read the file (Finder grants access),
+    so we copy it to /tmp where ffmpeg has unrestricted access.
+    """
+    src = Path(input_path)
+    tmp_input = Path(tempfile.mkdtemp()) / src.name
+    shutil.copy2(str(src), str(tmp_input))
+    return tmp_input
+
+
 def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     """Convert an audio file to 16kHz mono WAV.
 
@@ -60,8 +74,11 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     tmp.close()
     tmp_path = tmp.name
 
+    # Copy to temp to avoid macOS TCC restrictions in Automator context
+    safe_input = _copy_to_temp(input_path)
+
     try:
-        cmd = [ffmpeg, "-y", "-i", input_path]
+        cmd = [ffmpeg, "-y", "-i", str(safe_input)]
 
         if enhanced:
             cmd += ["-af", ENHANCED_FILTER_CHAIN]
@@ -73,7 +90,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
         )
     except subprocess.CalledProcessError as e:
         Path(tmp_path).unlink(missing_ok=True)
-        detail = e.stderr.decode(errors="replace")[:500] if e.stderr else ""
+        detail = e.stderr.decode(errors="replace")[-1000:] if e.stderr else ""
         raise RuntimeError(f"ffmpeg failed to convert {input_path}: {detail}")
     except Exception:
         try:
@@ -81,5 +98,11 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
         except OSError:
             pass
         raise
+    finally:
+        safe_input.unlink(missing_ok=True)
+        try:
+            safe_input.parent.rmdir()
+        except OSError:
+            pass
 
     return Path(tmp_path)
