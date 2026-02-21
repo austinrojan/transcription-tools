@@ -118,6 +118,37 @@ class TestVeryslowExtras:
         assert tier.save_backup is False
 
 
+class TestTierBackendParams:
+    """Verify each tier carries the correct backend_params type."""
+
+    @pytest.mark.parametrize("name", ["veryfast", "fast", "medium"])
+    def test_faster_whisper_tiers_have_fw_params(self, name):
+        assert isinstance(TIERS[name].backend_params, FasterWhisperParams)
+
+    @pytest.mark.parametrize("name", ["slow", "veryslow"])
+    def test_openai_whisper_tiers_have_oai_params(self, name):
+        assert isinstance(TIERS[name].backend_params, OpenAIWhisperParams)
+
+    def test_veryfast_language_is_english(self):
+        assert TIERS["veryfast"].backend_params.language == "en"
+
+    def test_fast_has_vad(self):
+        params = TIERS["fast"].backend_params
+        assert params.vad_filter is True
+        assert params.vad_params is not None
+
+    def test_medium_compute_type_gpu_is_float16(self):
+        assert TIERS["medium"].backend_params.compute_type_gpu == "float16"
+
+    def test_veryslow_has_initial_prompt(self):
+        params = TIERS["veryslow"].backend_params
+        assert params.initial_prompt is not None
+        assert "Subsplash" in params.initial_prompt
+
+    def test_veryslow_signal_handling(self):
+        assert TIERS["veryslow"].backend_params.signal_handling is True
+
+
 class TestCleanupConfig:
     def test_default_model_in_allowed(self):
         assert DEFAULT_CLEANUP_MODEL in ALLOWED_CLEANUP_MODELS
