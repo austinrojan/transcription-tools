@@ -54,15 +54,11 @@ class TestTiersExist:
 class TestTierBackends:
     @pytest.mark.parametrize("name", ["veryfast", "fast", "medium"])
     def test_faster_whisper_tiers(self, name):
-        assert TIERS[name].backend == "faster_whisper"
+        assert isinstance(TIERS[name].backend_params, FasterWhisperParams)
 
     @pytest.mark.parametrize("name", ["slow", "veryslow"])
     def test_openai_whisper_tiers(self, name):
-        assert TIERS[name].backend == "whisper"
-
-    @pytest.mark.parametrize("name", EXPECTED_TIERS)
-    def test_valid_backend(self, name):
-        assert TIERS[name].backend in ("faster_whisper", "whisper")
+        assert isinstance(TIERS[name].backend_params, OpenAIWhisperParams)
 
 
 class TestTierModels:
@@ -93,7 +89,7 @@ class TestFrozenDataclass:
     def test_vad_params_immutable(self):
         tier = TIERS["fast"]
         with pytest.raises(TypeError):
-            tier.vad_params["min_speech_duration_ms"] = 99999
+            tier.backend_params.vad_params["min_speech_duration_ms"] = 99999
 
 
 class TestVeryslowExtras:
@@ -101,20 +97,20 @@ class TestVeryslowExtras:
         assert TIERS["veryslow"].enhanced_audio is True
 
     def test_signal_handling(self):
-        assert TIERS["veryslow"].signal_handling is True
+        assert TIERS["veryslow"].backend_params.signal_handling is True
 
     def test_save_backup(self):
         assert TIERS["veryslow"].save_backup is True
 
     def test_has_initial_prompt(self):
-        assert TIERS["veryslow"].initial_prompt is not None
-        assert "Subsplash" in TIERS["veryslow"].initial_prompt
+        params = TIERS["veryslow"].backend_params
+        assert params.initial_prompt is not None
+        assert "Subsplash" in params.initial_prompt
 
     @pytest.mark.parametrize("name", ["veryfast", "fast", "medium", "slow"])
     def test_other_tiers_no_extras(self, name):
         tier = TIERS[name]
         assert tier.enhanced_audio is False
-        assert tier.signal_handling is False
         assert tier.save_backup is False
 
 
