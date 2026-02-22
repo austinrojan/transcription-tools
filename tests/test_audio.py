@@ -109,6 +109,17 @@ class TestProbeAudioStreams:
         with pytest.raises(RuntimeError, match="ffprobe failed"):
             probe_audio_streams("/fake/corrupt.bin")
 
+    def test_raises_on_invalid_json(self, mock_subproc, mock_copy, _):
+        self._setup_mocks(mock_subproc, mock_copy)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "not json"
+        mock_subproc.run.return_value = mock_result
+
+        with pytest.raises(RuntimeError, match="invalid JSON"):
+            probe_audio_streams("/fake/corrupt.mkv")
+
     def test_cleans_up_temp_file_on_success(self, mock_subproc, mock_copy, _):
         safe_input = self._setup_mocks(mock_subproc, mock_copy)
 

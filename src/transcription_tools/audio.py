@@ -122,7 +122,12 @@ def probe_audio_streams(file_path: str) -> list[dict]:
             f"ffprobe failed to read '{file_path}': {detail}"
         )
 
-    data = json.loads(result.stdout)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        raise RuntimeError(
+            f"ffprobe returned invalid JSON for '{file_path}'"
+        )
     return data.get("streams", [])
 
 
