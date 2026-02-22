@@ -10,7 +10,7 @@ from pathlib import Path
 # Must be set before torch/ctranslate2 are imported anywhere
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-from transcription_tools.audio import convert_to_wav
+from transcription_tools.audio import convert_to_wav, classify_media_file, SUPPORTED_EXTENSIONS
 from transcription_tools.cleanup import TranscriptCleaner
 from transcription_tools.config import (
     ALLOWED_CLEANUP_MODELS,
@@ -25,9 +25,9 @@ from transcription_tools.transcribe import transcribe
 def _parse_args(tier: TranscriptionTier) -> argparse.Namespace:
     backend_name = "faster_whisper" if isinstance(tier.backend_params, FasterWhisperParams) else "whisper"
     parser = argparse.ArgumentParser(
-        description=f"Transcribe audio — {tier.label} tier ({backend_name}, {tier.whisper_model} model)."
+        description=f"Transcribe audio or video — {tier.label} tier ({backend_name}, {tier.whisper_model} model)."
     )
-    parser.add_argument("input_file", help="Path to the input audio file.")
+    parser.add_argument("input_file", help="Path to the input audio or video file.")
     cleanup_group = parser.add_mutually_exclusive_group()
     cleanup_group.add_argument(
         "--no-cleanup", action="store_true",
@@ -57,7 +57,9 @@ def _resolve_cleanup_model(args: argparse.Namespace) -> str:
 
 
 def _run_transcription(input_path: Path, tier: TranscriptionTier, output_path: Path) -> None:
-    print(f"Converting '{input_path.name}' to 16kHz mono WAV...")
+    media_type = classify_media_file(str(input_path))
+    label = "video" if media_type == "video" else "audio"
+    print(f"Converting {label} '{input_path.name}' to 16kHz mono WAV...")
     wav_path = convert_to_wav(str(input_path), enhanced=tier.enhanced_audio)
     try:
         text = transcribe(str(wav_path), tier)
@@ -93,6 +95,12 @@ def run(tier_name: str) -> None:
     if not input_path.is_file():
         print(f"Error: File '{input_path}' does not exist.")
         sys.exit(1)
+
+    if input_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        print(
+            f"Warning: '{input_path.suffix}' is not a recognized audio or video format. "
+            "Attempting conversion anyway."
+        )
 
     output_path = input_path.with_name(f"{input_path.stem}_{tier.name}.txt")
 
