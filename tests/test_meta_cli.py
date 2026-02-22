@@ -11,6 +11,7 @@ from transcription_tools.meta_cli import (
     _parse_version,
     check_for_update,
     config_command,
+    get_uninstall_paths,
     main,
 )
 
@@ -110,6 +111,45 @@ class TestCheckForUpdate:
         """String comparison would incorrectly say 2.9.0 > 2.10.0."""
         has_update, _, _ = check_for_update()
         assert has_update is True
+
+
+class TestGetUninstallPaths:
+
+    def test_includes_install_dir(self):
+        paths = get_uninstall_paths(keep_config=True, keep_models=True)
+        assert any(
+            "transcription-tools" in str(p) and "Application Support" in str(p)
+            for p in paths["dirs"]
+        )
+
+    def test_includes_wrapper_scripts(self):
+        paths = get_uninstall_paths(keep_config=True, keep_models=True)
+        assert any("transcribe-fast" in str(p) for p in paths["files"])
+
+    def test_includes_workflows(self):
+        paths = get_uninstall_paths(keep_config=True, keep_models=True)
+        assert any("Transcribe Audio" in str(p) for p in paths["dirs"])
+
+    def test_excludes_config_when_keep_true(self):
+        paths = get_uninstall_paths(keep_config=True, keep_models=True)
+        assert not any(
+            ".config/transcription-tools" in str(p) for p in paths["dirs"]
+        )
+
+    def test_includes_config_when_keep_false(self):
+        paths = get_uninstall_paths(keep_config=False, keep_models=True)
+        assert any(
+            ".config/transcription-tools" in str(p) for p in paths["dirs"]
+        )
+
+    def test_excludes_model_caches_when_keep_true(self):
+        paths = get_uninstall_paths(keep_config=True, keep_models=True)
+        assert not any(".cache/whisper" in str(p) for p in paths["dirs"])
+
+    def test_includes_model_caches_when_keep_false(self):
+        paths = get_uninstall_paths(keep_config=False, keep_models=False)
+        assert any(".cache/whisper" in str(p) for p in paths["dirs"])
+        assert any(".cache/huggingface" in str(p) for p in paths["dirs"])
 
 
 class TestMainDispatch:
