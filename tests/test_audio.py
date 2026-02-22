@@ -121,6 +121,19 @@ class TestConvertToWav:
             convert_to_wav("/input/audio.mp3")
         safe_input.unlink.assert_called_once_with(missing_ok=True)
 
+    def test_output_temp_cleaned_up_on_failure(
+        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+    ):
+        mock_tmp, _ = self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
+        mock_subproc.run.side_effect = subprocess.CalledProcessError(
+            1, "ffmpeg", stderr=b"err",
+        )
+        with patch("transcription_tools.audio.Path") as MockPath, \
+             pytest.raises(RuntimeError):
+            convert_to_wav("/input/audio.mp3")
+        MockPath.assert_called_once_with(mock_tmp.name)
+        MockPath.return_value.unlink.assert_called_once_with(missing_ok=True)
+
     def test_runtime_error_chains_original_exception(
         self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
