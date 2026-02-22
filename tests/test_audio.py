@@ -55,6 +55,11 @@ class TestConvertToWav:
         mock_copy.return_value = safe_input
         return mock_tmp, safe_input
 
+    @staticmethod
+    def _get_ffmpeg_cmd(mock_subproc):
+        """Extract the ffmpeg command list from the subprocess.run mock."""
+        return mock_subproc.run.call_args[0][0]
+
     def test_returns_wav_path_on_success(
         self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
@@ -76,7 +81,7 @@ class TestConvertToWav:
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3", enhanced=True)
-        cmd = mock_subproc.run.call_args[0][0]
+        cmd = self._get_ffmpeg_cmd(mock_subproc)
         assert "-af" in cmd
         assert ENHANCED_FILTER_CHAIN in cmd
 
@@ -85,7 +90,7 @@ class TestConvertToWav:
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3", enhanced=False)
-        cmd = mock_subproc.run.call_args[0][0]
+        cmd = self._get_ffmpeg_cmd(mock_subproc)
         assert "-af" not in cmd
 
     def test_raises_runtime_error_on_ffmpeg_failure(
@@ -131,7 +136,7 @@ class TestConvertToWav:
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3")
-        cmd = mock_subproc.run.call_args[0][0]
+        cmd = self._get_ffmpeg_cmd(mock_subproc)
         assert "-ar" in cmd
         assert str(SAMPLE_RATE_HZ) in cmd
         assert "-ac" in cmd
