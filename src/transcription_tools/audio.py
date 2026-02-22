@@ -107,6 +107,20 @@ def probe_audio_streams(file_path: str) -> list[dict]:
     return data.get("streams", [])
 
 
+def validate_has_audio(file_path: str) -> None:
+    """Raise ValueError if the file contains no audio streams.
+
+    Call this before convert_to_wav() to produce a clear error message
+    instead of a cryptic ffmpeg failure.
+    """
+    streams = probe_audio_streams(file_path)
+    if not streams:
+        raise ValueError(
+            f"No audio stream found in '{file_path}'. "
+            "The file may be a silent video or a non-media file."
+        )
+
+
 def _copy_input_to_temp(input_path: str) -> Path:
     """Copy input file to a temp directory so ffmpeg can read it.
 

@@ -11,6 +11,7 @@ from transcription_tools.audio import (
     find_ffmpeg,
     find_ffprobe,
     probe_audio_streams,
+    validate_has_audio,
     convert_to_wav,
     FFMPEG_CANDIDATES,
     FFPROBE_CANDIDATES,
@@ -138,6 +139,18 @@ class TestProbeAudioStreams:
         with pytest.raises(subprocess.TimeoutExpired):
             probe_audio_streams("/fake/file.mp4")
         safe_input.unlink.assert_called_once_with(missing_ok=True)
+
+
+class TestValidateHasAudio:
+    @patch("transcription_tools.audio.probe_audio_streams",
+           return_value=[{"codec_type": "audio"}])
+    def test_passes_when_audio_present(self, _):
+        validate_has_audio("/fake/video.mp4")  # Should not raise
+
+    @patch("transcription_tools.audio.probe_audio_streams", return_value=[])
+    def test_raises_when_no_audio(self, _):
+        with pytest.raises(ValueError, match="No audio stream found"):
+            validate_has_audio("/fake/silent_screencast.mp4")
 
 
 @patch("transcription_tools.audio.find_ffmpeg", return_value="/usr/bin/ffmpeg")
