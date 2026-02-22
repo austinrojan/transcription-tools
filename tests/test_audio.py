@@ -1,5 +1,6 @@
 """Tests for audio conversion module."""
 
+import json
 import subprocess
 from unittest.mock import MagicMock, patch
 from pathlib import Path
@@ -9,6 +10,7 @@ import pytest
 from transcription_tools.audio import (
     find_ffmpeg,
     find_ffprobe,
+    probe_audio_streams,
     convert_to_wav,
     FFMPEG_CANDIDATES,
     FFPROBE_CANDIDATES,
@@ -51,6 +53,91 @@ class TestFindFfprobe:
              patch.object(Path, "is_file", return_value=False):
             with pytest.raises(FileNotFoundError, match="ffprobe not found"):
                 find_ffprobe()
+
+
+class TestProbeAudioStreams:
+    """Test ffprobe-based audio stream detection."""
+
+    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+    @patch("transcription_tools.audio._copy_input_to_temp")
+    @patch("transcription_tools.audio.subprocess")
+    def test_returns_audio_streams(self, mock_subproc, mock_copy, _mock_ffprobe):
+        mock_subproc.CalledProcessError = subprocess.CalledProcessError
+        safe_input = MagicMock(spec=Path)
+        safe_input.parent = MagicMock(spec=Path)
+        mock_copy.return_value = safe_input
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({
+            "streams": [{"codec_type": "audio", "codec_name": "aac"}]
+        })
+        mock_subproc.run.return_value = mock_result
+
+        streams = probe_audio_streams("/fake/video.mp4")
+        assert len(streams) == 1
+        assert streams[0]["codec_name"] == "aac"
+
+    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+    @patch("transcription_tools.audio._copy_input_to_temp")
+    @patch("transcription_tools.audio.subprocess")
+    def test_returns_empty_list_when_no_audio(self, mock_subproc, mock_copy, _):
+        safe_input = MagicMock(spec=Path)
+        safe_input.parent = MagicMock(spec=Path)
+        mock_copy.return_value = safe_input
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({"streams": []})
+        mock_subproc.run.return_value = mock_result
+
+        assert probe_audio_streams("/fake/silent_video.mp4") == []
+
+    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+    @patch("transcription_tools.audio._copy_input_to_temp")
+    @patch("transcription_tools.audio.subprocess")
+    def test_raises_on_ffprobe_failure(self, mock_subproc, mock_copy, _):
+        safe_input = MagicMock(spec=Path)
+        safe_input.parent = MagicMock(spec=Path)
+        mock_copy.return_value = safe_input
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = "Invalid data found when processing input"
+        mock_subproc.run.return_value = mock_result
+
+        with pytest.raises(RuntimeError, match="ffprobe failed"):
+            probe_audio_streams("/fake/corrupt.bin")
+
+    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+    @patch("transcription_tools.audio._copy_input_to_temp")
+    @patch("transcription_tools.audio.subprocess")
+    def test_cleans_up_temp_file_on_success(self, mock_subproc, mock_copy, _):
+        safe_input = MagicMock(spec=Path)
+        safe_input.parent = MagicMock(spec=Path)
+        mock_copy.return_value = safe_input
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({"streams": []})
+        mock_subproc.run.return_value = mock_result
+
+        probe_audio_streams("/fake/file.mp4")
+        safe_input.unlink.assert_called_once_with(missing_ok=True)
+
+    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+    @patch("transcription_tools.audio._copy_input_to_temp")
+    @patch("transcription_tools.audio.subprocess")
+    def test_cleans_up_temp_file_on_failure(self, mock_subproc, mock_copy, _):
+        safe_input = MagicMock(spec=Path)
+        safe_input.parent = MagicMock(spec=Path)
+        mock_copy.return_value = safe_input
+
+        mock_subproc.run.side_effect = subprocess.TimeoutExpired("ffprobe", 30)
+
+        with pytest.raises(subprocess.TimeoutExpired):
+            probe_audio_streams("/fake/file.mp4")
+        safe_input.unlink.assert_called_once_with(missing_ok=True)
 
 
 @patch("transcription_tools.audio.find_ffmpeg", return_value="/usr/bin/ffmpeg")

@@ -6,6 +6,7 @@ Optionally applies audio enhancement filters for the veryslow tier.
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import tempfile
@@ -60,6 +61,50 @@ def find_ffprobe() -> str:
     raise FileNotFoundError(
         "ffprobe not found. Install it with: brew install ffmpeg"
     )
+
+
+def probe_audio_streams(file_path: str) -> list[dict]:
+    """Return metadata for all audio streams in a media file.
+
+    Uses ffprobe to inspect the file without decoding any media data.
+    Returns an empty list if no audio streams are found.
+
+    Raises:
+        FileNotFoundError: If ffprobe is not installed.
+        RuntimeError: If ffprobe exits with a non-zero code (corrupt or
+                      unreadable file).
+    """
+    ffprobe = find_ffprobe()
+    safe_input = _copy_input_to_temp(file_path)
+    try:
+        result = subprocess.run(
+            [
+                ffprobe,
+                "-v", "quiet",
+                "-print_format", "json",
+                "-show_streams",
+                "-select_streams", "a",
+                str(safe_input),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    finally:
+        safe_input.unlink(missing_ok=True)
+        try:
+            safe_input.parent.rmdir()
+        except OSError:
+            pass
+
+    if result.returncode != 0:
+        detail = (result.stderr or "")[-500:]
+        raise RuntimeError(
+            f"ffprobe failed to read '{file_path}': {detail}"
+        )
+
+    data = json.loads(result.stdout)
+    return data.get("streams", [])
 
 
 def _copy_input_to_temp(input_path: str) -> Path:
