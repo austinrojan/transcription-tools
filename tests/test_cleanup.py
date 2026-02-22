@@ -4,6 +4,8 @@ import pytest
 
 from transcription_tools.cleanup import (
     TERM_CORRECTIONS,
+    WORD_COUNT_TOLERANCE_HIGH,
+    WORD_COUNT_TOLERANCE_LOW,
     TranscriptCleaner,
     apply_basic_cleanup,
     build_cleanup_prompt,
@@ -53,10 +55,11 @@ class TestBuildCleanupPrompt:
     """Test the extracted prompt-building function."""
 
     def test_word_count_range_in_prompt(self):
-        text = " ".join(["word"] * 100)
+        word_count = 100
+        text = " ".join(["word"] * word_count)
         prompt = build_cleanup_prompt(text, 1, 1)
-        assert "80" in prompt  # 100 * 0.8
-        assert "120" in prompt  # 100 * 1.2
+        assert str(int(word_count * WORD_COUNT_TOLERANCE_LOW)) in prompt
+        assert str(int(word_count * WORD_COUNT_TOLERANCE_HIGH)) in prompt
 
     def test_chunk_index_in_prompt(self):
         prompt = build_cleanup_prompt("some text", 3, 7)
