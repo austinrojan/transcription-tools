@@ -47,15 +47,26 @@ TERM_CORRECTIONS = [
     (" gotta ", " got to "), (" kinda ", " kind of "),
 ]
 
-_COMPILED_CORRECTIONS: list[tuple[re.Pattern[str], str]] = []
-for _old, _new in TERM_CORRECTIONS:
-    _stripped = _old.strip()
-    if _old != _stripped:
-        _pattern = re.compile(r"\b" + re.escape(_stripped) + r"\b", re.IGNORECASE)
-    else:
-        _pattern = re.compile(re.escape(_stripped), re.IGNORECASE)
-    _COMPILED_CORRECTIONS.append((_pattern, _new.strip()))
-del _old, _new, _stripped, _pattern
+def _compile_corrections(
+    terms: list[tuple[str, str]],
+) -> list[tuple[re.Pattern[str], str]]:
+    """Compile TERM_CORRECTIONS into (regex, replacement) pairs.
+
+    Terms with leading/trailing whitespace (e.g., " gonna ") use word
+    boundary markers so they match at sentence edges and after punctuation.
+    """
+    result = []
+    for raw, replacement in terms:
+        stripped = raw.strip()
+        escaped = re.escape(stripped)
+        if raw != stripped:
+            escaped = r"\b" + escaped + r"\b"
+        pattern = re.compile(escaped, re.IGNORECASE)
+        result.append((pattern, replacement.strip()))
+    return result
+
+
+_COMPILED_CORRECTIONS = _compile_corrections(TERM_CORRECTIONS)
 
 META_PHRASES = [
     "here is", "here's the", "cleaned transcript",
