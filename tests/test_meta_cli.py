@@ -46,13 +46,13 @@ class TestConfigShow:
 class TestConfigSetApiKey:
 
     @patch("transcription_tools.meta_cli.save_config")
-    @patch("builtins.input", return_value="sk-proj-newkey123")
+    @patch("getpass.getpass", return_value="sk-proj-newkey123")
     def test_saves_valid_key(self, mock_input, mock_save, capsys):
         config_command(show=False, set_api_key=True, set_pair=None, unset=None)
         saved = mock_save.call_args[0][0]
         assert saved["openai_api_key"] == "sk-proj-newkey123"
 
-    @patch("builtins.input", return_value="not-a-valid-key")
+    @patch("getpass.getpass", return_value="not-a-valid-key")
     def test_rejects_invalid_key(self, mock_input, capsys):
         with pytest.raises(SystemExit):
             config_command(show=False, set_api_key=True, set_pair=None, unset=None)
@@ -86,6 +86,12 @@ class TestParseVersion:
 
     def test_parses_double_digit_version(self):
         assert _parse_version("2.10.0") == (2, 10, 0)
+
+    def test_handles_prerelease_suffix(self):
+        assert _parse_version("2.0.0-beta") == (2, 0, 0)
+
+    def test_handles_rc_suffix(self):
+        assert _parse_version("1.0.0rc1") == (1, 0, 0)
 
 
 class TestCheckForUpdate:

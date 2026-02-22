@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import sys
 
 from transcription_tools import __version__
@@ -16,8 +17,20 @@ from transcription_tools.user_config import CONFIG_DIR, delete_config_key, load_
 
 
 def _parse_version(v: str) -> tuple[int, ...]:
-    """Parse a semver string into a tuple for correct numeric comparison."""
-    return tuple(int(x) for x in v.split("."))
+    """Parse a semver string into a tuple for correct numeric comparison.
+
+    Strips non-numeric suffixes (e.g. '2.0.0-beta' -> (2, 0, 0)).
+    """
+    parts: list[int] = []
+    for segment in v.split("."):
+        digits = ""
+        for ch in segment:
+            if ch.isdigit():
+                digits += ch
+            else:
+                break
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
 
 
 def _get_installed_version() -> str:
@@ -100,7 +113,7 @@ def config_command(
         return
 
     if set_api_key:
-        key = input("Enter your OpenAI API key (starts with 'sk-'): ").strip()
+        key = getpass.getpass("Enter your OpenAI API key (starts with 'sk-'): ").strip()
         if not key.startswith("sk-") or len(key) < 10:
             print("Error: API key must start with 'sk-' and be at least 10 characters.")
             sys.exit(1)
