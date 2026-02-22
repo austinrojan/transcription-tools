@@ -4,9 +4,9 @@
 set -euo pipefail
 
 # -- Version pins (update with each release) --
-TT_VERSION="2.0.0"
-PYTHON_VERSION="3.12.8"
-PBS_VERSION="20250107"
+TT_VERSION="2.0.1"
+PYTHON_VERSION="3.12.12"
+PBS_VERSION="20260211"
 PYTORCH_VERSION_INTEL="2.2.2"
 
 # -- Paths --
