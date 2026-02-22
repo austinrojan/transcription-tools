@@ -16,6 +16,11 @@ FFMPEG_CANDIDATES = [
     "/usr/local/bin/ffmpeg",
 ]
 
+FFPROBE_CANDIDATES = [
+    "/opt/homebrew/bin/ffprobe",
+    "/usr/local/bin/ffprobe",
+]
+
 SAMPLE_RATE_HZ = 16000
 HIGHPASS_FREQUENCY_HZ = 100
 LOWPASS_FREQUENCY_HZ = 8000
@@ -41,6 +46,19 @@ def find_ffmpeg() -> str:
             return candidate
     raise FileNotFoundError(
         "ffmpeg not found. Install it with: brew install ffmpeg"
+    )
+
+
+def find_ffprobe() -> str:
+    """Locate the ffprobe binary on this system."""
+    path = shutil.which("ffprobe")
+    if path:
+        return path
+    for candidate in FFPROBE_CANDIDATES:
+        if Path(candidate).is_file():
+            return candidate
+    raise FileNotFoundError(
+        "ffprobe not found. Install it with: brew install ffmpeg"
     )
 
 

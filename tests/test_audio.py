@@ -8,8 +8,10 @@ import pytest
 
 from transcription_tools.audio import (
     find_ffmpeg,
+    find_ffprobe,
     convert_to_wav,
     FFMPEG_CANDIDATES,
+    FFPROBE_CANDIDATES,
     ENHANCED_FILTER_CHAIN,
     SAMPLE_RATE_HZ,
 )
@@ -31,6 +33,24 @@ class TestFindFfmpeg:
              patch.object(Path, "is_file", return_value=False):
             with pytest.raises(FileNotFoundError, match="ffmpeg not found"):
                 find_ffmpeg()
+
+
+class TestFindFfprobe:
+    def test_returns_shutil_which_result(self):
+        with patch("shutil.which", return_value="/usr/bin/ffprobe"):
+            assert find_ffprobe() == "/usr/bin/ffprobe"
+
+    def test_falls_back_to_candidates(self):
+        with patch("shutil.which", return_value=None), \
+             patch.object(Path, "is_file", return_value=True):
+            result = find_ffprobe()
+            assert result in FFPROBE_CANDIDATES
+
+    def test_raises_when_not_found(self):
+        with patch("shutil.which", return_value=None), \
+             patch.object(Path, "is_file", return_value=False):
+            with pytest.raises(FileNotFoundError, match="ffprobe not found"):
+                find_ffprobe()
 
 
 @patch("transcription_tools.audio.find_ffmpeg", return_value="/usr/bin/ffmpeg")
