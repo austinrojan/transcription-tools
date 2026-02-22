@@ -25,18 +25,14 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
     current: list[str] = []
     current_len = 0
 
-    def flush() -> None:
-        nonlocal current, current_len
-        if current:
-            chunks.append(" ".join(current).strip())
-            current, current_len = [], 0
-
     for sentence in sentences:
         if not sentence:
             continue
 
         if len(sentence) > max_chars:
-            flush()
+            if current:
+                chunks.append(" ".join(current).strip())
+                current, current_len = [], 0
             chunks.extend(split_at_word_boundaries(sentence, max_chars))
             continue
 
@@ -44,11 +40,12 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
             current.append(sentence)
             current_len += len(sentence) + 1
         else:
-            flush()
+            chunks.append(" ".join(current).strip())
             current = [sentence]
             current_len = len(sentence) + 1
 
-    flush()
+    if current:
+        chunks.append(" ".join(current).strip())
 
     return chunks
 
@@ -72,14 +69,14 @@ def split_at_word_boundaries(text: str, max_chars: int) -> list[str]:
     return pieces
 
 
+_PREFATORY_LABEL_RE = re.compile(
+    r"^(?:here\s+is\s+the\s+cleaned[- ]?up\s+transcript:"
+    r"|cleaned[- ]?up\s+transcript:"
+    r"|here\s+is\s+the\s+transcript:)\s*",
+    re.IGNORECASE,
+)
+
+
 def sanitize_model_output(text: str) -> str:
     """Strip prefatory labels that models sometimes prepend."""
-    result = text.strip()
-    patterns = [
-        r"^here\s+is\s+the\s+cleaned[- ]?up\s+transcript:\s*",
-        r"^cleaned[- ]?up\s+transcript:\s*",
-        r"^here\s+is\s+the\s+transcript:\s*",
-    ]
-    for pattern in patterns:
-        result = re.sub(pattern, "", result, flags=re.IGNORECASE)
-    return result.strip()
+    return _PREFATORY_LABEL_RE.sub("", text.strip()).strip()
