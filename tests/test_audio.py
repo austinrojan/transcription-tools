@@ -60,17 +60,22 @@ class TestFindFfprobe:
                 find_ffprobe()
 
 
+@patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
+@patch("transcription_tools.audio._copy_input_to_temp")
+@patch("transcription_tools.audio.subprocess")
 class TestProbeAudioStreams:
     """Test ffprobe-based audio stream detection."""
 
-    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
-    @patch("transcription_tools.audio._copy_input_to_temp")
-    @patch("transcription_tools.audio.subprocess")
-    def test_returns_audio_streams(self, mock_subproc, mock_copy, _mock_ffprobe):
+    def _setup_mocks(self, mock_subproc, mock_copy):
+        """Configure standard mock return values."""
         mock_subproc.CalledProcessError = subprocess.CalledProcessError
         safe_input = MagicMock(spec=Path)
         safe_input.parent = MagicMock(spec=Path)
         mock_copy.return_value = safe_input
+        return safe_input
+
+    def test_returns_audio_streams(self, mock_subproc, mock_copy, _mock_ffprobe):
+        safe_input = self._setup_mocks(mock_subproc, mock_copy)
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -83,13 +88,8 @@ class TestProbeAudioStreams:
         assert len(streams) == 1
         assert streams[0]["codec_name"] == "aac"
 
-    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
-    @patch("transcription_tools.audio._copy_input_to_temp")
-    @patch("transcription_tools.audio.subprocess")
     def test_returns_empty_list_when_no_audio(self, mock_subproc, mock_copy, _):
-        safe_input = MagicMock(spec=Path)
-        safe_input.parent = MagicMock(spec=Path)
-        mock_copy.return_value = safe_input
+        self._setup_mocks(mock_subproc, mock_copy)
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -98,13 +98,8 @@ class TestProbeAudioStreams:
 
         assert probe_audio_streams("/fake/silent_video.mp4") == []
 
-    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
-    @patch("transcription_tools.audio._copy_input_to_temp")
-    @patch("transcription_tools.audio.subprocess")
     def test_raises_on_ffprobe_failure(self, mock_subproc, mock_copy, _):
-        safe_input = MagicMock(spec=Path)
-        safe_input.parent = MagicMock(spec=Path)
-        mock_copy.return_value = safe_input
+        self._setup_mocks(mock_subproc, mock_copy)
 
         mock_result = MagicMock()
         mock_result.returncode = 1
@@ -114,13 +109,8 @@ class TestProbeAudioStreams:
         with pytest.raises(RuntimeError, match="ffprobe failed"):
             probe_audio_streams("/fake/corrupt.bin")
 
-    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
-    @patch("transcription_tools.audio._copy_input_to_temp")
-    @patch("transcription_tools.audio.subprocess")
     def test_cleans_up_temp_file_on_success(self, mock_subproc, mock_copy, _):
-        safe_input = MagicMock(spec=Path)
-        safe_input.parent = MagicMock(spec=Path)
-        mock_copy.return_value = safe_input
+        safe_input = self._setup_mocks(mock_subproc, mock_copy)
 
         mock_result = MagicMock()
         mock_result.returncode = 0
@@ -130,14 +120,8 @@ class TestProbeAudioStreams:
         probe_audio_streams("/fake/file.mp4")
         safe_input.unlink.assert_called_once_with(missing_ok=True)
 
-    @patch("transcription_tools.audio.find_ffprobe", return_value="/usr/bin/ffprobe")
-    @patch("transcription_tools.audio._copy_input_to_temp")
-    @patch("transcription_tools.audio.subprocess")
     def test_cleans_up_temp_file_on_failure(self, mock_subproc, mock_copy, _):
-        safe_input = MagicMock(spec=Path)
-        safe_input.parent = MagicMock(spec=Path)
-        mock_copy.return_value = safe_input
-
+        safe_input = self._setup_mocks(mock_subproc, mock_copy)
         mock_subproc.run.side_effect = subprocess.TimeoutExpired("ffprobe", 30)
 
         with pytest.raises(subprocess.TimeoutExpired):
