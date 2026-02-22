@@ -37,7 +37,7 @@ class TranscriptionTier:
     Shared parameters live here directly. Backend-specific parameters
     live in backend_params — use isinstance() to determine which backend.
     """
-    name: str
+    name: str  # Matches the TIERS dict key; duplicated for standalone use (e.g. output filenames)
     label: str
     whisper_model: str
     backend_params: FasterWhisperParams | OpenAIWhisperParams

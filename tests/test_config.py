@@ -65,6 +65,10 @@ class TestTiersExist:
         names = [t.name for t in TIERS.values()]
         assert len(names) == len(set(names))
 
+    def test_name_matches_dict_key(self):
+        for key, tier in TIERS.items():
+            assert tier.name == key, f"TIERS['{key}'].name is '{tier.name}', expected '{key}'"
+
 
 class TestTierModels:
     @pytest.mark.parametrize("name,expected_model", [
