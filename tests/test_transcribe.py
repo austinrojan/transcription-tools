@@ -75,25 +75,17 @@ class TestDetectCtranslate2Device:
 class TestDetectTorchDevice:
     """Test the torch device detection function."""
 
-    def test_returns_cuda_when_available(self):
+    @pytest.mark.parametrize("cuda,mps,expected", [
+        pytest.param(True, False, "cuda", id="cuda-available"),
+        pytest.param(False, True, "mps", id="mps-available"),
+        pytest.param(False, False, "cpu", id="cpu-fallback"),
+    ])
+    def test_returns_best_device(self, cuda, mps, expected):
         mock_torch = MagicMock()
-        mock_torch.cuda.is_available.return_value = True
+        mock_torch.cuda.is_available.return_value = cuda
+        mock_torch.backends.mps.is_available.return_value = mps
         with patch.dict(sys.modules, {"torch": mock_torch}):
-            assert _detect_torch_device() == "cuda"
-
-    def test_returns_mps_when_available(self):
-        mock_torch = MagicMock()
-        mock_torch.cuda.is_available.return_value = False
-        mock_torch.backends.mps.is_available.return_value = True
-        with patch.dict(sys.modules, {"torch": mock_torch}):
-            assert _detect_torch_device() == "mps"
-
-    def test_returns_cpu_as_fallback(self):
-        mock_torch = MagicMock()
-        mock_torch.cuda.is_available.return_value = False
-        mock_torch.backends.mps.is_available.return_value = False
-        with patch.dict(sys.modules, {"torch": mock_torch}):
-            assert _detect_torch_device() == "cpu"
+            assert _detect_torch_device() == expected
 
     def test_returns_cpu_when_not_installed(self):
         with patch.dict(sys.modules, {"torch": None}):
@@ -121,7 +113,7 @@ class TestTranscribeDispatch:
 
     @patch("transcription_tools.transcribe.transcribe_faster_whisper", return_value="text")
     @patch("transcription_tools.transcribe._detect_ctranslate2_device", return_value="cpu")
-    def test_faster_whisper_uses_ctranslate2_detector(self, mock_ct2, _mock_fw, faster_whisper_tier):
+    def test_faster_whisper_calls_correct_device_detector(self, mock_ct2, _mock_fw, faster_whisper_tier):
         transcribe("/fake/audio.wav", faster_whisper_tier)
         mock_ct2.assert_called_once()
 
