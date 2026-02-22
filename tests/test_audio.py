@@ -157,6 +157,7 @@ class TestValidateHasAudio:
 @patch("transcription_tools.audio._copy_input_to_temp")
 @patch("transcription_tools.audio.tempfile")
 @patch("transcription_tools.audio.subprocess")
+@patch("transcription_tools.audio.validate_has_audio")
 class TestConvertToWav:
     """Tests for convert_to_wav."""
 
@@ -181,14 +182,14 @@ class TestConvertToWav:
         return mock_subproc.run.call_args[0][0]
 
     def test_returns_wav_path_on_success(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         mock_tmp, safe_input = self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         result = convert_to_wav("/input/audio.mp3")
         assert result == Path("/tmp/test_output.wav")
 
     def test_calls_subprocess_with_check(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3")
@@ -197,7 +198,7 @@ class TestConvertToWav:
         assert kwargs["check"] is True
 
     def test_enhanced_mode_adds_filter_chain(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3", enhanced=True)
@@ -206,7 +207,7 @@ class TestConvertToWav:
         assert ENHANCED_FILTER_CHAIN in cmd
 
     def test_standard_mode_omits_filter_chain(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3", enhanced=False)
@@ -214,7 +215,7 @@ class TestConvertToWav:
         assert "-af" not in cmd
 
     def test_raises_runtime_error_on_ffmpeg_failure(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         mock_subproc.run.side_effect = subprocess.CalledProcessError(
@@ -224,14 +225,14 @@ class TestConvertToWav:
             convert_to_wav("/input/audio.mp3")
 
     def test_safe_input_cleaned_up_on_success(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         _, safe_input = self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3")
         safe_input.unlink.assert_called_once_with(missing_ok=True)
 
     def test_safe_input_cleaned_up_on_failure(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         _, safe_input = self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         mock_subproc.run.side_effect = subprocess.CalledProcessError(
@@ -242,7 +243,7 @@ class TestConvertToWav:
         safe_input.unlink.assert_called_once_with(missing_ok=True)
 
     def test_output_temp_cleaned_up_on_failure(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         mock_tmp, _ = self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         mock_subproc.run.side_effect = subprocess.CalledProcessError(
@@ -255,7 +256,7 @@ class TestConvertToWav:
         MockPath.return_value.unlink.assert_called_once_with(missing_ok=True)
 
     def test_runtime_error_chains_original_exception(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         cause = subprocess.CalledProcessError(1, "ffmpeg", stderr=b"err")
@@ -265,7 +266,7 @@ class TestConvertToWav:
         assert exc_info.value.__cause__ is cause
 
     def test_cmd_includes_sample_rate_and_mono(
-        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):
         self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
         convert_to_wav("/input/audio.mp3")
@@ -275,3 +276,30 @@ class TestConvertToWav:
         assert "-ac" in cmd
         ac_idx = cmd.index("-ac")
         assert cmd[ac_idx + 1] == "1"
+
+    def test_cmd_includes_map_flag(
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+    ):
+        self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
+        convert_to_wav("/input/audio.mp3")
+        cmd = self._get_ffmpeg_cmd(mock_subproc)
+        assert "-map" in cmd
+        map_idx = cmd.index("-map")
+        assert cmd[map_idx + 1] == "0:a:0"
+
+    def test_cmd_does_not_include_vn_flag(
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+    ):
+        self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
+        convert_to_wav("/input/audio.mp3")
+        cmd = self._get_ffmpeg_cmd(mock_subproc)
+        assert "-vn" not in cmd
+
+    def test_raises_value_error_when_no_audio(
+        self, mock_validate, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+    ):
+        self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
+        mock_validate.side_effect = ValueError("No audio stream found")
+        with pytest.raises(ValueError, match="No audio stream"):
+            convert_to_wav("/input/silent_video.mp4")
+        mock_subproc.run.assert_not_called()

@@ -1,7 +1,9 @@
-"""Audio conversion via ffmpeg.
+"""Audio and video conversion via ffmpeg.
 
-Converts input audio to 16kHz mono WAV for Whisper consumption.
-Optionally applies audio enhancement filters for the veryslow tier.
+Extracts and converts audio from any media file (audio or video) to
+16kHz mono WAV for Whisper consumption. Uses ffprobe to validate that
+the input contains an audio stream before conversion. Optionally
+applies audio enhancement filters for the veryslow tier.
 """
 
 from __future__ import annotations
@@ -136,16 +138,17 @@ def _copy_input_to_temp(input_path: str) -> Path:
 
 
 def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
-    """Convert an audio file to 16kHz mono WAV.
+    """Convert a media file to 16kHz mono WAV.
 
     Args:
-        input_path: Path to the source audio file.
+        input_path: Path to the source audio or video file.
         enhanced: If True, apply noise reduction and dynamic range
                   compression filters (used by the veryslow tier).
 
     Returns:
         Path to the temporary WAV file. Caller is responsible for cleanup.
     """
+    validate_has_audio(input_path)
     ffmpeg = find_ffmpeg()
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     tmp.close()
@@ -156,12 +159,12 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
 
     result_path = None
     try:
-        cmd = [ffmpeg, "-y", "-i", str(safe_input)]
+        cmd = [ffmpeg, "-y", "-i", str(safe_input), "-map", "0:a:0"]
 
         if enhanced:
             cmd += ["-af", ENHANCED_FILTER_CHAIN]
 
-        cmd += ["-ar", str(SAMPLE_RATE_HZ), "-ac", "1", "-vn", "-f", "wav", tmp_path]
+        cmd += ["-ar", str(SAMPLE_RATE_HZ), "-ac", "1", "-f", "wav", tmp_path]
 
         subprocess.run(
             cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
