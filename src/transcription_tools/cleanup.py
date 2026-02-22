@@ -18,17 +18,23 @@ from transcription_tools.text_processing import (
     split_into_chunks,
 )
 
+# -- Chunking thresholds -------------------------------------------------
 MAX_CHUNK_CHARS = 2500
 MIN_SUBDIVIDE_CHARS = 1000
+
+# -- Retry and rate-limiting ---------------------------------------------
 MAX_RETRIES = 3
 INTER_REQUEST_DELAY_SECONDS = 0.5
 DEFAULT_RATE_LIMIT_WAIT_SECONDS = 20
 MAX_RATE_LIMIT_WAIT_SECONDS = 120
+
+# -- Validation thresholds -----------------------------------------------
 MIN_ACCEPTABLE_WORD_RATIO = 0.75
 WORD_COUNT_TOLERANCE_LOW = 0.8
 WORD_COUNT_TOLERANCE_HIGH = 1.2
 META_CHECK_PREFIX_CHARS = 200
 
+# -- Domain-specific corrections -----------------------------------------
 TERM_CORRECTIONS = [
     ("sub splash", "Subsplash"), ("sub-splash", "Subsplash"),
     ("subsplash", "Subsplash"),
@@ -124,11 +130,7 @@ class TranscriptCleaner:
 
     def _handle_api_error(self, exc: Exception, chunk_idx: int) -> None:
         """Handle OpenAI API errors. Re-raises AuthenticationError; returns None for retryable errors."""
-        try:
-            from openai import RateLimitError, AuthenticationError
-        except ImportError:
-            print(f"[cleanup] chunk {chunk_idx} error: {str(exc)[:100]}")
-            return None
+        from openai import AuthenticationError, RateLimitError
 
         if isinstance(exc, AuthenticationError):
             raise exc
@@ -144,10 +146,9 @@ class TranscriptCleaner:
                 retry_after * (2 ** self._consecutive_rate_limits),
             )
             print(f"[cleanup] chunk {chunk_idx}: rate limited, waiting {self._rate_limit_wait_seconds}s")
-            return None
+            return
 
         print(f"[cleanup] chunk {chunk_idx} error: {str(exc)[:100]}")
-        return None
 
     # -- Chunk processing ------------------------------------------------
 
@@ -208,7 +209,7 @@ class TranscriptCleaner:
             parts = []
             for sub in sub_chunks:
                 sub_result = self._process_chunk(sub, idx, total, attempt + 1)
-                parts.append(sub_result if sub_result else apply_basic_cleanup(sub))
+                parts.append(sub_result or apply_basic_cleanup(sub))
             return " ".join(parts)
 
         print(f"[cleanup] chunk {idx}: falling back to basic cleanup")
