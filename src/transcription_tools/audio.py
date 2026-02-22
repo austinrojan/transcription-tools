@@ -8,24 +8,21 @@ Optionally applies enhancement filters for the veryslow tier.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
-_INSTALL_FFMPEG_DIR = os.path.expanduser(
-    "~/Library/Application Support/transcription-tools/ffmpeg"
-)
+from transcription_tools.install_paths import FFMPEG_DIR
 
 FFMPEG_CANDIDATES = [
-    os.path.join(_INSTALL_FFMPEG_DIR, "ffmpeg"),
+    str(FFMPEG_DIR / "ffmpeg"),
     "/opt/homebrew/bin/ffmpeg",
     "/usr/local/bin/ffmpeg",
 ]
 
 FFPROBE_CANDIDATES = [
-    os.path.join(_INSTALL_FFMPEG_DIR, "ffprobe"),
+    str(FFMPEG_DIR / "ffprobe"),
     "/opt/homebrew/bin/ffprobe",
     "/usr/local/bin/ffprobe",
 ]

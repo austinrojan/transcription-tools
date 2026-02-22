@@ -2,36 +2,36 @@
 
 from __future__ import annotations
 
+import pytest
+
 from scripts.generate_workflows import build_shell_command, WORKFLOW_TIERS
 
 
 class TestBuildShellCommand:
 
+    @pytest.fixture(autouse=True)
+    def _fast_cmd(self):
+        self.cmd = build_shell_command("transcribe-fast")
+
     def test_includes_path_setup(self):
-        cmd = build_shell_command("transcribe-fast")
-        assert "/usr/local/bin" in cmd
-        assert "transcription-tools/ffmpeg" in cmd
+        assert "/usr/local/bin" in self.cmd
+        assert "transcription-tools/ffmpeg" in self.cmd
 
     def test_includes_installation_check(self):
-        cmd = build_shell_command("transcribe-fast")
-        assert "command -v" in cmd
+        assert "command -v" in self.cmd
 
     def test_includes_correct_command(self):
-        cmd = build_shell_command("transcribe-fast")
-        assert 'transcribe-fast "$f"' in cmd
+        assert 'transcribe-fast "$f"' in self.cmd
 
     def test_includes_notification(self):
-        cmd = build_shell_command("transcribe-fast")
-        assert "display notification" in cmd
+        assert "display notification" in self.cmd
 
     def test_includes_logging(self):
-        cmd = build_shell_command("transcribe-fast")
-        assert "tee" in cmd
+        assert "tee" in self.cmd
 
     def test_different_commands_produce_different_scripts(self):
-        fast = build_shell_command("transcribe-fast")
         slow = build_shell_command("transcribe-slow")
-        assert "transcribe-fast" in fast
+        assert "transcribe-fast" in self.cmd
         assert "transcribe-slow" in slow
         assert "transcribe-fast" not in slow
 

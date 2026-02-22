@@ -1,7 +1,6 @@
 """Tests for audio conversion module."""
 
 import json
-import os
 import subprocess
 from unittest.mock import MagicMock, patch
 from pathlib import Path
@@ -9,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from transcription_tools.audio import (
-    _INSTALL_FFMPEG_DIR,
     find_ffmpeg,
     find_ffprobe,
     probe_audio_streams,
@@ -24,17 +22,16 @@ from transcription_tools.audio import (
     ENHANCED_FILTER_CHAIN,
     SAMPLE_RATE_HZ,
 )
+from transcription_tools.install_paths import FFMPEG_DIR
 
 
 class TestInstallDirFfmpegCandidates:
 
     def test_install_dir_ffmpeg_is_first_candidate(self):
-        expected = os.path.join(_INSTALL_FFMPEG_DIR, "ffmpeg")
-        assert FFMPEG_CANDIDATES[0] == expected
+        assert FFMPEG_CANDIDATES[0] == str(FFMPEG_DIR / "ffmpeg")
 
     def test_install_dir_ffprobe_is_first_candidate(self):
-        expected = os.path.join(_INSTALL_FFMPEG_DIR, "ffprobe")
-        assert FFPROBE_CANDIDATES[0] == expected
+        assert FFPROBE_CANDIDATES[0] == str(FFMPEG_DIR / "ffprobe")
 
     def test_homebrew_candidates_still_present(self):
         assert "/opt/homebrew/bin/ffmpeg" in FFMPEG_CANDIDATES

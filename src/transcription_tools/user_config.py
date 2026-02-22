@@ -46,6 +46,13 @@ def save_config(updates: dict) -> None:
     _write_config(existing)
 
 
+def delete_config_key(key: str) -> None:
+    """Remove a key from the config file. No-op if key doesn't exist."""
+    config = load_config()
+    config.pop(key, None)
+    _write_config(config)
+
+
 def get_config_value(
     key: str,
     *,

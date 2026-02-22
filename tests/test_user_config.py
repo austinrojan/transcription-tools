@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from contextlib import contextmanager
 from unittest.mock import patch
 
-from transcription_tools.user_config import get_config_value, load_config, save_config
+from transcription_tools.user_config import delete_config_key, get_config_value, load_config, save_config
+
+
+@contextmanager
+def _patched_config(tmp_path):
+    """Patch CONFIG_DIR and CONFIG_FILE to use tmp_path."""
+    config_dir = tmp_path / "config" / "transcription-tools"
+    config_file = config_dir / "config.toml"
+    with patch("transcription_tools.user_config.CONFIG_DIR", config_dir), \
+         patch("transcription_tools.user_config.CONFIG_FILE", config_file):
+        yield config_dir, config_file
 
 
 class TestLoadConfig:
@@ -38,29 +48,20 @@ class TestSaveConfig:
     """Test writing config.toml to disk."""
 
     def test_creates_config_dir_and_file(self, tmp_path):
-        config_dir = tmp_path / "config" / "transcription-tools"
-        config_file = config_dir / "config.toml"
-        with patch("transcription_tools.user_config.CONFIG_DIR", config_dir), \
-             patch("transcription_tools.user_config.CONFIG_FILE", config_file):
+        with _patched_config(tmp_path) as (_, config_file):
             save_config({"openai_api_key": "sk-abc"})
         assert config_file.exists()
         assert "sk-abc" in config_file.read_text()
 
     def test_sets_file_permissions_to_600(self, tmp_path):
-        config_dir = tmp_path / "config" / "transcription-tools"
-        config_file = config_dir / "config.toml"
-        with patch("transcription_tools.user_config.CONFIG_DIR", config_dir), \
-             patch("transcription_tools.user_config.CONFIG_FILE", config_file):
+        with _patched_config(tmp_path) as (_, config_file):
             save_config({"openai_api_key": "sk-abc"})
         assert config_file.stat().st_mode & 0o777 == 0o600
 
     def test_merges_with_existing_config(self, tmp_path):
-        config_dir = tmp_path / "config" / "transcription-tools"
-        config_file = config_dir / "config.toml"
-        config_dir.mkdir(parents=True)
-        config_file.write_text('openai_model = "gpt-5-mini"\n')
-        with patch("transcription_tools.user_config.CONFIG_DIR", config_dir), \
-             patch("transcription_tools.user_config.CONFIG_FILE", config_file):
+        with _patched_config(tmp_path) as (config_dir, config_file):
+            config_dir.mkdir(parents=True)
+            config_file.write_text('openai_model = "gpt-5-mini"\n')
             save_config({"openai_api_key": "sk-new"})
             config = load_config()
         assert config["openai_api_key"] == "sk-new"
@@ -102,3 +103,24 @@ class TestGetConfigValue:
             os.environ.pop("OPENAI_API_KEY", None)
             result = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
         assert result is None
+
+
+class TestDeleteConfigKey:
+    """Test removing a key from config."""
+
+    def test_removes_existing_key(self, tmp_path):
+        with _patched_config(tmp_path) as (config_dir, config_file):
+            config_dir.mkdir(parents=True)
+            config_file.write_text('openai_model = "gpt-5"\nopenai_api_key = "sk-x"\n')
+            delete_config_key("openai_model")
+            config = load_config()
+        assert "openai_model" not in config
+        assert config["openai_api_key"] == "sk-x"
+
+    def test_noop_for_missing_key(self, tmp_path):
+        with _patched_config(tmp_path) as (config_dir, config_file):
+            config_dir.mkdir(parents=True)
+            config_file.write_text('openai_api_key = "sk-x"\n')
+            delete_config_key("nonexistent")
+            config = load_config()
+        assert config["openai_api_key"] == "sk-x"

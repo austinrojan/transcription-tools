@@ -16,6 +16,11 @@ from transcription_tools.meta_cli import (
 )
 
 
+def _has_path_matching(paths: list, pattern: str) -> bool:
+    """Check if any path in the list contains the pattern string."""
+    return any(pattern in str(p) for p in paths)
+
+
 class TestConfigShow:
 
     @patch("transcription_tools.meta_cli.load_config")
@@ -66,18 +71,12 @@ class TestConfigSet:
 
 class TestConfigUnset:
 
-    @patch("transcription_tools.meta_cli._write_config")
-    @patch(
-        "transcription_tools.meta_cli.load_config",
-        return_value={"openai_model": "gpt-5", "openai_api_key": "sk-x"},
-    )
-    def test_removes_key(self, mock_load, mock_write):
+    @patch("transcription_tools.meta_cli.delete_config_key")
+    def test_removes_key(self, mock_delete):
         config_command(
             show=False, set_api_key=False, set_pair=None, unset="openai_model",
         )
-        written = mock_write.call_args[0][0]
-        assert "openai_model" not in written
-        assert "openai_api_key" in written
+        mock_delete.assert_called_once_with("openai_model")
 
 
 class TestParseVersion:
@@ -117,39 +116,32 @@ class TestGetUninstallPaths:
 
     def test_includes_install_dir(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
-        assert any(
-            "transcription-tools" in str(p) and "Application Support" in str(p)
-            for p in paths["dirs"]
-        )
+        assert _has_path_matching(paths["dirs"], "Application Support/transcription-tools")
 
     def test_includes_wrapper_scripts(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
-        assert any("transcribe-fast" in str(p) for p in paths["files"])
+        assert _has_path_matching(paths["files"], "transcribe-fast")
 
     def test_includes_workflows(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
-        assert any("Transcribe Audio" in str(p) for p in paths["dirs"])
+        assert _has_path_matching(paths["dirs"], "Transcribe Audio")
 
     def test_excludes_config_when_keep_true(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
-        assert not any(
-            ".config/transcription-tools" in str(p) for p in paths["dirs"]
-        )
+        assert not _has_path_matching(paths["dirs"], ".config/transcription-tools")
 
     def test_includes_config_when_keep_false(self):
         paths = get_uninstall_paths(keep_config=False, keep_models=True)
-        assert any(
-            ".config/transcription-tools" in str(p) for p in paths["dirs"]
-        )
+        assert _has_path_matching(paths["dirs"], ".config/transcription-tools")
 
     def test_excludes_model_caches_when_keep_true(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
-        assert not any(".cache/whisper" in str(p) for p in paths["dirs"])
+        assert not _has_path_matching(paths["dirs"], ".cache/whisper")
 
     def test_includes_model_caches_when_keep_false(self):
         paths = get_uninstall_paths(keep_config=False, keep_models=False)
-        assert any(".cache/whisper" in str(p) for p in paths["dirs"])
-        assert any(".cache/huggingface" in str(p) for p in paths["dirs"])
+        assert _has_path_matching(paths["dirs"], ".cache/whisper")
+        assert _has_path_matching(paths["dirs"], ".cache/huggingface")
 
 
 class TestMainDispatch:

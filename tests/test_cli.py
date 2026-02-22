@@ -16,6 +16,23 @@ import pytest  # noqa: E402
 from transcription_tools.cli import run  # noqa: E402
 
 
+def _make_mock_args(input_file: str, **overrides) -> MagicMock:
+    """Build a mock args namespace with sensible defaults."""
+    args = MagicMock()
+    defaults = {
+        "input_file": input_file,
+        "no_cleanup": False,
+        "cleanup": False,
+        "cleanup_only": False,
+        "openai_model": None,
+        "openai_base_url": None,
+    }
+    defaults.update(overrides)
+    for key, value in defaults.items():
+        setattr(args, key, value)
+    return args
+
+
 class TestCleanupGracefulDegradation:
     """Test that missing API key does not crash transcription."""
 
@@ -31,14 +48,7 @@ class TestCleanupGracefulDegradation:
         output_file = tmp_path / "recording_fast.txt"
         output_file.write_text("raw transcript\n")
 
-        mock_args = MagicMock()
-        mock_args.input_file = str(input_file)
-        mock_args.no_cleanup = False
-        mock_args.cleanup = False
-        mock_args.cleanup_only = False
-        mock_args.openai_model = None
-        mock_args.openai_base_url = None
-        mock_parse.return_value = mock_args
+        mock_parse.return_value = _make_mock_args(str(input_file))
 
         from transcription_tools.config import TIERS
         mock_available.return_value = {"fast": TIERS["fast"]}
@@ -59,14 +69,7 @@ class TestCleanupGracefulDegradation:
         input_file = tmp_path / "recording.mp3"
         input_file.touch()
 
-        mock_args = MagicMock()
-        mock_args.input_file = str(input_file)
-        mock_args.no_cleanup = True
-        mock_args.cleanup = False
-        mock_args.cleanup_only = False
-        mock_args.openai_model = None
-        mock_args.openai_base_url = None
-        mock_parse.return_value = mock_args
+        mock_parse.return_value = _make_mock_args(str(input_file), no_cleanup=True)
 
         from transcription_tools.config import TIERS
         mock_available.return_value = {"fast": TIERS["fast"]}
@@ -89,14 +92,7 @@ class TestCleanupFlag:
         output_file = tmp_path / "recording_fast.txt"
         output_file.write_text("raw transcript\n")
 
-        mock_args = MagicMock()
-        mock_args.input_file = str(input_file)
-        mock_args.no_cleanup = False
-        mock_args.cleanup = True
-        mock_args.cleanup_only = False
-        mock_args.openai_model = None
-        mock_args.openai_base_url = None
-        mock_parse.return_value = mock_args
+        mock_parse.return_value = _make_mock_args(str(input_file), cleanup=True)
 
         from transcription_tools.config import TIERS
         mock_available.return_value = {"fast": TIERS["fast"]}
@@ -111,9 +107,7 @@ class TestTierAvailabilityCheck:
     @patch("transcription_tools.cli.get_available_tiers", return_value={})
     @patch("transcription_tools.cli._parse_args")
     def test_exits_when_tier_not_available(self, mock_parse, mock_available, capsys):
-        mock_args = MagicMock()
-        mock_args.input_file = "/fake/file.mp3"
-        mock_parse.return_value = mock_args
+        mock_parse.return_value = _make_mock_args("/fake/file.mp3")
 
         with pytest.raises(SystemExit):
             run("slow")

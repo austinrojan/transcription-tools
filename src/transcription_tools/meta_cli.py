@@ -12,7 +12,7 @@ from transcription_tools.install_paths import (
     VERSION_FILE,
     WRAPPER_COMMANDS,
 )
-from transcription_tools.user_config import CONFIG_DIR, load_config, save_config, _write_config
+from transcription_tools.user_config import CONFIG_DIR, delete_config_key, load_config, save_config
 
 
 def _parse_version(v: str) -> tuple[int, ...]:
@@ -61,8 +61,9 @@ def get_uninstall_paths(
     dirs: list[Path] = [INSTALL_DIR]
     files: list[Path] = [Path(f"/usr/local/bin/{cmd}") for cmd in WRAPPER_COMMANDS]
 
-    for name in ["Very Fast", "Fast", "Medium", "Slow", "Very Slow"]:
-        dirs.append(SERVICES_DIR / f"Transcribe Audio - {name}.workflow")
+    from transcription_tools.config import TIERS
+    for tier in TIERS.values():
+        dirs.append(SERVICES_DIR / f"Transcribe Audio - {tier.label}.workflow")
 
     if not keep_config:
         dirs.append(CONFIG_DIR)
@@ -113,11 +114,53 @@ def config_command(
         return
 
     if unset is not None:
-        config = load_config()
-        config.pop(unset, None)
-        _write_config(config)
+        delete_config_key(unset)
         print(f"Removed {unset} from config.")
         return
+
+
+def _uninstall_command() -> None:
+    """Interactive uninstall: prompt for options, list paths, delete."""
+    import shutil
+
+    print("This will remove Transcription Tools from your system.\n")
+
+    keep_config = True
+    keep_models = True
+    resp = input("  Also remove configuration (API key, settings)? [y/N] ").strip()
+    if resp.lower() in ("y", "yes"):
+        keep_config = False
+    resp = input("  Also remove downloaded model files (~2-5 GB)? [y/N] ").strip()
+    if resp.lower() in ("y", "yes"):
+        keep_models = False
+
+    paths = get_uninstall_paths(keep_config=keep_config, keep_models=keep_models)
+
+    print("\nThe following will be removed:")
+    for d in paths["dirs"]:
+        if d.exists():
+            print(f"  [dir]  {d}")
+    for f in paths["files"]:
+        if f.exists():
+            print(f"  [file] {f}")
+
+    resp = input("\nProceed? [y/N] ").strip()
+    if resp.lower() not in ("y", "yes"):
+        print("Uninstall cancelled.")
+        sys.exit(0)
+
+    for f in paths["files"]:
+        try:
+            f.unlink(missing_ok=True)
+        except PermissionError:
+            import subprocess
+            subprocess.run(["sudo", "rm", "-f", str(f)], check=False)
+    for d in paths["dirs"]:
+        if d.exists():
+            shutil.rmtree(d, ignore_errors=True)
+
+    print("\nTranscription Tools has been removed.")
+    sys.exit(0)
 
 
 def main() -> None:
@@ -178,46 +221,8 @@ def main() -> None:
         sys.exit(0)
 
     if args.command == "uninstall":
-        import shutil
-
-        print("This will remove Transcription Tools from your system.\n")
-
-        keep_config = True
-        keep_models = True
-        resp = input("  Also remove configuration (API key, settings)? [y/N] ").strip()
-        if resp.lower() in ("y", "yes"):
-            keep_config = False
-        resp = input("  Also remove downloaded model files (~2-5 GB)? [y/N] ").strip()
-        if resp.lower() in ("y", "yes"):
-            keep_models = False
-
-        paths = get_uninstall_paths(keep_config=keep_config, keep_models=keep_models)
-
-        print("\nThe following will be removed:")
-        for d in paths["dirs"]:
-            if d.exists():
-                print(f"  [dir]  {d}")
-        for f in paths["files"]:
-            if f.exists():
-                print(f"  [file] {f}")
-
-        resp = input("\nProceed? [y/N] ").strip()
-        if resp.lower() not in ("y", "yes"):
-            print("Uninstall cancelled.")
-            sys.exit(0)
-
-        for f in paths["files"]:
-            try:
-                f.unlink(missing_ok=True)
-            except PermissionError:
-                import subprocess
-                subprocess.run(["sudo", "rm", "-f", str(f)], check=False)
-        for d in paths["dirs"]:
-            if d.exists():
-                shutil.rmtree(d, ignore_errors=True)
-
-        print("\nTranscription Tools has been removed.")
-        sys.exit(0)
+        _uninstall_command()
+        return
 
     parser.print_help()
     sys.exit(1)
