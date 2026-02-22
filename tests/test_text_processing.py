@@ -84,6 +84,14 @@ class TestSplitAtWordBoundaries:
         rejoined = " ".join(pieces)
         assert rejoined == text
 
+    def test_max_chars_zero_raises(self):
+        with pytest.raises(ValueError, match="max_chars must be positive"):
+            split_at_word_boundaries("hello", 0)
+
+    def test_max_chars_negative_raises(self):
+        with pytest.raises(ValueError, match="max_chars must be positive"):
+            split_at_word_boundaries("hello", -5)
+
 
 class TestSanitizeModelOutput:
     def test_strips_cleaned_up_prefix(self):
