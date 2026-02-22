@@ -7,7 +7,12 @@ from unittest.mock import patch
 
 import pytest
 
-from transcription_tools.meta_cli import config_command, main
+from transcription_tools.meta_cli import (
+    _parse_version,
+    check_for_update,
+    config_command,
+    main,
+)
 
 
 class TestConfigShow:
@@ -72,6 +77,39 @@ class TestConfigUnset:
         written = mock_write.call_args[0][0]
         assert "openai_model" not in written
         assert "openai_api_key" in written
+
+
+class TestParseVersion:
+
+    def test_parses_simple_version(self):
+        assert _parse_version("2.0.0") == (2, 0, 0)
+
+    def test_parses_double_digit_version(self):
+        assert _parse_version("2.10.0") == (2, 10, 0)
+
+
+class TestCheckForUpdate:
+
+    @patch("transcription_tools.meta_cli._get_installed_version", return_value="2.0.0")
+    @patch("transcription_tools.meta_cli._get_latest_version", return_value="2.1.0")
+    def test_detects_available_update(self, mock_latest, mock_installed):
+        has_update, current, latest = check_for_update()
+        assert has_update is True
+        assert current == "2.0.0"
+        assert latest == "2.1.0"
+
+    @patch("transcription_tools.meta_cli._get_installed_version", return_value="2.0.0")
+    @patch("transcription_tools.meta_cli._get_latest_version", return_value="2.0.0")
+    def test_no_update_when_current(self, mock_latest, mock_installed):
+        has_update, _, _ = check_for_update()
+        assert has_update is False
+
+    @patch("transcription_tools.meta_cli._get_installed_version", return_value="2.9.0")
+    @patch("transcription_tools.meta_cli._get_latest_version", return_value="2.10.0")
+    def test_handles_double_digit_minor_version(self, mock_latest, mock_installed):
+        """String comparison would incorrectly say 2.9.0 > 2.10.0."""
+        has_update, _, _ = check_for_update()
+        assert has_update is True
 
 
 class TestMainDispatch:

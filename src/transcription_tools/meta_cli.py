@@ -6,7 +6,45 @@ import argparse
 import sys
 
 from transcription_tools import __version__
+from transcription_tools.install_paths import VERSION_FILE
 from transcription_tools.user_config import load_config, save_config, _write_config
+
+
+def _parse_version(v: str) -> tuple[int, ...]:
+    """Parse a semver string into a tuple for correct numeric comparison."""
+    return tuple(int(x) for x in v.split("."))
+
+
+def _get_installed_version() -> str:
+    """Read installed version from version.txt, falling back to package version."""
+    if VERSION_FILE.exists():
+        return VERSION_FILE.read_text(encoding="utf-8").strip()
+    return __version__
+
+
+def _get_latest_version() -> str:
+    """Fetch the latest release version from GitHub."""
+    import json
+    import urllib.request
+
+    url = "https://api.github.com/repos/austinrojan/transcription-tools/releases/latest"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read())
+        return data.get("tag_name", "").lstrip("v")
+    except Exception:
+        return __version__
+
+
+def check_for_update() -> tuple[bool, str, str]:
+    """Check if a newer version is available on GitHub.
+
+    Returns (has_update, current_version, latest_version).
+    """
+    current = _get_installed_version()
+    latest = _get_latest_version()
+    has_update = _parse_version(latest) > _parse_version(current)
+    return has_update, current, latest
 
 
 def _mask_key(key: str) -> str:
@@ -101,7 +139,16 @@ def main() -> None:
         return
 
     if args.command == "update":
-        print("Update command not yet implemented.")
+        has_update, current, latest = check_for_update()
+        if not has_update:
+            print(f"Already up to date (v{current}).")
+        else:
+            print(f"Update available: v{current} -> v{latest}")
+            print("To update, re-run the install script:")
+            print(
+                "  curl -fsSL https://raw.githubusercontent.com/"
+                "austinrojan/transcription-tools/main/install.sh | bash"
+            )
         sys.exit(0)
 
     if args.command == "uninstall":
