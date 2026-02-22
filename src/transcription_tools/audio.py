@@ -66,30 +66,27 @@ def classify_media_file(file_path: str) -> str:
     return "unknown"
 
 
-def find_ffmpeg() -> str:
-    """Locate the ffmpeg binary on this system."""
-    path = shutil.which("ffmpeg")
+def _find_binary(name: str, candidates: list[str]) -> str:
+    """Locate a binary by name, falling back to known candidate paths."""
+    path = shutil.which(name)
     if path:
         return path
-    for candidate in FFMPEG_CANDIDATES:
+    for candidate in candidates:
         if Path(candidate).is_file():
             return candidate
     raise FileNotFoundError(
-        "ffmpeg not found. Install it with: brew install ffmpeg"
+        f"{name} not found. Install it with: brew install ffmpeg"
     )
+
+
+def find_ffmpeg() -> str:
+    """Locate the ffmpeg binary on this system."""
+    return _find_binary("ffmpeg", FFMPEG_CANDIDATES)
 
 
 def find_ffprobe() -> str:
     """Locate the ffprobe binary on this system."""
-    path = shutil.which("ffprobe")
-    if path:
-        return path
-    for candidate in FFPROBE_CANDIDATES:
-        if Path(candidate).is_file():
-            return candidate
-    raise FileNotFoundError(
-        "ffprobe not found. Install it with: brew install ffmpeg"
-    )
+    return _find_binary("ffprobe", FFPROBE_CANDIDATES)
 
 
 def probe_audio_streams(file_path: str) -> list[dict]:
