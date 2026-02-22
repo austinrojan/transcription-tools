@@ -116,6 +116,16 @@ class TestConvertToWav:
             convert_to_wav("/input/audio.mp3")
         safe_input.unlink.assert_called_once_with(missing_ok=True)
 
+    def test_runtime_error_chains_original_exception(
+        self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
+    ):
+        self._setup_mocks(mock_subproc, mock_tempfile, mock_copy)
+        cause = subprocess.CalledProcessError(1, "ffmpeg", stderr=b"err")
+        mock_subproc.run.side_effect = cause
+        with pytest.raises(RuntimeError) as exc_info:
+            convert_to_wav("/input/audio.mp3")
+        assert exc_info.value.__cause__ is cause
+
     def test_cmd_includes_sample_rate_and_mono(
         self, mock_subproc, mock_tempfile, mock_copy, mock_ffmpeg,
     ):

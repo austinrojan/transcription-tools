@@ -77,6 +77,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     # Copy to temp to avoid macOS TCC restrictions in Automator context
     safe_input = _copy_to_temp(input_path)
 
+    result_path = None
     try:
         cmd = [ffmpeg, "-y", "-i", str(safe_input)]
 
@@ -88,21 +89,17 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
         subprocess.run(
             cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
         )
+        result_path = Path(tmp_path)
     except subprocess.CalledProcessError as e:
-        Path(tmp_path).unlink(missing_ok=True)
         detail = e.stderr.decode(errors="replace")[-1000:] if e.stderr else ""
-        raise RuntimeError(f"ffmpeg failed to convert {input_path}: {detail}")
-    except Exception:
-        try:
-            Path(tmp_path).unlink(missing_ok=True)
-        except OSError:
-            pass
-        raise
+        raise RuntimeError(f"ffmpeg failed to convert {input_path}: {detail}") from e
     finally:
         safe_input.unlink(missing_ok=True)
         try:
             safe_input.parent.rmdir()
         except OSError:
             pass
+        if result_path is None:
+            Path(tmp_path).unlink(missing_ok=True)
 
-    return Path(tmp_path)
+    return result_path
