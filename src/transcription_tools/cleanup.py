@@ -152,7 +152,7 @@ class TranscriptCleaner:
         )
         return (response.choices[0].message.content or "").strip()
 
-    def _handle_api_error(self, exc: Exception, chunk_idx: int) -> None:
+    def _maybe_raise_api_error(self, exc: Exception, chunk_idx: int) -> None:
         """Handle OpenAI API errors. Re-raises AuthenticationError; returns None for retryable errors."""
         from openai import AuthenticationError, RateLimitError
 
@@ -197,7 +197,7 @@ class TranscriptCleaner:
         try:
             raw = self._send_cleanup_request(prompt)
         except openai.OpenAIError as exc:
-            self._handle_api_error(exc, chunk_idx)
+            self._maybe_raise_api_error(exc, chunk_idx)
             return None
 
         cleaned = sanitize_model_output(raw)
