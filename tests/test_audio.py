@@ -140,4 +140,5 @@ class TestConvertToWav:
         assert "-ar" in cmd
         assert str(SAMPLE_RATE_HZ) in cmd
         assert "-ac" in cmd
-        assert "1" in cmd
+        ac_idx = cmd.index("-ac")
+        assert cmd[ac_idx + 1] == "1"
