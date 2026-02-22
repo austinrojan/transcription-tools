@@ -15,16 +15,7 @@ from dataclasses import dataclass
 
 from transcription_tools.config import FasterWhisperParams, TranscriptionTier
 
-# OpenAI whisper decode parameters (not configurable per-tier).
-# These are unpacked as **kwargs into whisper's model.transcribe().
-_OPENAI_DECODE_OPTS: dict = {
-    "patience": 1.0,
-    "length_penalty": 1.0,
-    "compression_ratio_threshold": 2.4,
-    "logprob_threshold": -1.0,
-    "no_speech_threshold": 0.6,
-    "suppress_tokens": "-1",
-}
+# -- Timing helpers ------------------------------------------------------
 
 
 @dataclass
@@ -73,6 +64,9 @@ def _graceful_exit_handler():
         signal.signal(signal.SIGTERM, original_sigterm)
 
 
+# -- Device detection ----------------------------------------------------
+
+
 def _detect_ctranslate2_device() -> str:
     """Return 'cuda' if ctranslate2 supports it, otherwise 'cpu'.
 
@@ -100,6 +94,9 @@ def _detect_torch_device() -> str:
     except ImportError:
         pass
     return "cpu"
+
+
+# -- Backend implementations ---------------------------------------------
 
 
 def transcribe_faster_whisper(audio_path: str, tier: TranscriptionTier, device: str) -> str:
@@ -170,11 +167,20 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
                 initial_prompt=params.initial_prompt,
                 verbose=params.verbose,
                 fp16=(device == "cuda" and params.fp16_on_gpu),
-                **_OPENAI_DECODE_OPTS,
+                # Fixed decode parameters (not configurable per-tier).
+                patience=1.0,
+                length_penalty=1.0,
+                compression_ratio_threshold=2.4,
+                logprob_threshold=-1.0,
+                no_speech_threshold=0.6,
+                suppress_tokens="-1",
             )
             text = (result.get("text") or "").strip()
 
         return text
+
+
+# -- Public API ----------------------------------------------------------
 
 
 def transcribe(audio_path: str, tier: TranscriptionTier) -> str:
