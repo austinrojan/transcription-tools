@@ -6,6 +6,7 @@ Environment variables always take precedence over config file values.
 
 from __future__ import annotations
 
+import os
 import tomllib
 from pathlib import Path
 
@@ -43,3 +44,18 @@ def save_config(updates: dict) -> None:
     existing = load_config()
     existing.update(updates)
     _write_config(existing)
+
+
+def get_config_value(
+    key: str,
+    *,
+    env_var: str | None = None,
+    default: str | None = None,
+) -> str | None:
+    """Look up a config value with precedence: env var > config file > default."""
+    if env_var:
+        env_val = os.environ.get(env_var)
+        if env_val:
+            return env_val
+    config = load_config()
+    return config.get(key, default)

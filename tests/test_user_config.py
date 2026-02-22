@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
-from transcription_tools.user_config import load_config, save_config
+from transcription_tools.user_config import get_config_value, load_config, save_config
 
 
 class TestLoadConfig:
@@ -64,3 +65,40 @@ class TestSaveConfig:
             config = load_config()
         assert config["openai_api_key"] == "sk-new"
         assert config["openai_model"] == "gpt-5-mini"
+
+
+class TestGetConfigValue:
+    """Test env-var > config-file > default precedence."""
+
+    def test_env_var_wins_over_config_file(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('openai_api_key = "sk-from-file"\n')
+        with patch("transcription_tools.user_config.CONFIG_FILE", config_file), \
+             patch.dict(os.environ, {"OPENAI_API_KEY": "sk-from-env"}):
+            result = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
+        assert result == "sk-from-env"
+
+    def test_config_file_used_when_no_env_var(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('openai_api_key = "sk-from-file"\n')
+        with patch("transcription_tools.user_config.CONFIG_FILE", config_file), \
+             patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("OPENAI_API_KEY", None)
+            result = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
+        assert result == "sk-from-file"
+
+    def test_returns_default_when_no_env_and_no_config(self, tmp_path):
+        config_file = tmp_path / "nonexistent.toml"
+        with patch("transcription_tools.user_config.CONFIG_FILE", config_file), \
+             patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("OPENAI_API_KEY", None)
+            result = get_config_value("openai_api_key", env_var="OPENAI_API_KEY", default="none")
+        assert result == "none"
+
+    def test_returns_none_when_nothing_configured(self, tmp_path):
+        config_file = tmp_path / "nonexistent.toml"
+        with patch("transcription_tools.user_config.CONFIG_FILE", config_file), \
+             patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("OPENAI_API_KEY", None)
+            result = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
+        assert result is None
