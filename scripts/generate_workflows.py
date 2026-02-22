@@ -44,8 +44,8 @@ def build_shell_command(command_name: str) -> str:
         "        exit 1\n"
         "    fi\n"
         f'    {command_name} "$f" 2>&1 | tee -a "$HOME/Library/Logs/transcription-tools.log"\n'
-        "    STATUS=$?\n"
-        '    BASENAME=$(basename "$f")\n'
+        "    STATUS=${PIPESTATUS[0]}\n"
+        "    BASENAME=$(basename \"$f\" | tr -d '\"')\n"
         "    if [ $STATUS -eq 0 ]; then\n"
         '        osascript -e "display notification \\"Transcription complete: $BASENAME\\"'
         ' with title \\"Transcription Tools\\""\n'
@@ -66,7 +66,9 @@ def _patch_info_plist(workflow_dir: Path, label: str) -> None:
         info = plistlib.load(f)
     services = info.get("NSServices", [])
     if services:
-        menu_item = services[0].get("NSMenuItem", {})
+        if "NSMenuItem" not in services[0]:
+            services[0]["NSMenuItem"] = {}
+        menu_item = services[0]["NSMenuItem"]
         menu_item["default"] = f"Transcribe Audio - {label}"
     with open(info_plist_path, "wb") as f:
         plistlib.dump(info, f)

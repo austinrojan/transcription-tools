@@ -67,6 +67,12 @@ class TestSaveConfig:
         assert config["openai_api_key"] == "sk-new"
         assert config["openai_model"] == "gpt-5-mini"
 
+    def test_roundtrips_special_characters(self, tmp_path):
+        with _patched_config(tmp_path) as (_, config_file):
+            save_config({"tricky": 'has "quotes" and \\backslash and \nnewline'})
+            config = load_config()
+        assert config["tricky"] == 'has "quotes" and \\backslash and \nnewline'
+
 
 class TestGetConfigValue:
     """Test env-var > config-file > default precedence."""

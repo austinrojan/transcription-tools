@@ -68,8 +68,8 @@ for f in "$@"; do
         exit 1
     fi
     transcribe-slow "$f" 2&gt;&amp;1 | tee -a "$HOME/Library/Logs/transcription-tools.log"
-    STATUS=$?
-    BASENAME=$(basename "$f")
+    STATUS=${PIPESTATUS[0]}
+    BASENAME=$(basename "$f" | tr -d '"')
     if [ $STATUS -eq 0 ]; then
         osascript -e "display notification \"Transcription complete: $BASENAME\" with title \"Transcription Tools\""
     else

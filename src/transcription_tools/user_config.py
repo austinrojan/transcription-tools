@@ -30,7 +30,8 @@ def _write_config(data: dict) -> None:
     lines = []
     for key, value in sorted(data.items()):
         if isinstance(value, str):
-            lines.append(f'{key} = "{value}"')
+            escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+            lines.append(f'{key} = "{escaped}"')
         elif isinstance(value, bool):
             lines.append(f"{key} = {'true' if value else 'false'}")
         elif isinstance(value, (int, float)):
