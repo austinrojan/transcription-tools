@@ -6,5 +6,8 @@ dist/
 build/
 .DS_Store
 *.backup
+*.log
 .env
+.venv/
+.claude/
 .worktrees/
