@@ -117,11 +117,7 @@ def probe_audio_streams(file_path: str) -> list[dict]:
             timeout=30,
         )
     finally:
-        safe_input.unlink(missing_ok=True)
-        try:
-            safe_input.parent.rmdir()
-        except OSError:
-            pass
+        _cleanup_temp_input(safe_input)
 
     if result.returncode != 0:
         detail = (result.stderr or "")[-500:]
@@ -161,6 +157,15 @@ def _copy_input_to_temp(input_path: str) -> Path:
     return tmp_input
 
 
+def _cleanup_temp_input(temp_path: Path) -> None:
+    """Remove the temporary input copy and its parent directory."""
+    temp_path.unlink(missing_ok=True)
+    try:
+        temp_path.parent.rmdir()
+    except OSError:
+        pass
+
+
 def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     """Convert a media file to 16kHz mono WAV.
 
@@ -198,11 +203,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
         detail = e.stderr.decode(errors="replace")[-1000:] if e.stderr else ""
         raise RuntimeError(f"ffmpeg failed to convert {input_path}: {detail}") from e
     finally:
-        safe_input.unlink(missing_ok=True)
-        try:
-            safe_input.parent.rmdir()
-        except OSError:
-            pass
+        _cleanup_temp_input(safe_input)
         if result_path is None:
             Path(tmp_path).unlink(missing_ok=True)
 
