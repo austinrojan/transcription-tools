@@ -47,6 +47,7 @@ TERM_CORRECTIONS = [
     (" gotta ", " got to "), (" kinda ", " kind of "),
 ]
 
+
 def _compile_corrections(
     terms: list[tuple[str, str]],
 ) -> list[tuple[re.Pattern[str], str]]:
