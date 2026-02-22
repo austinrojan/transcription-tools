@@ -13,7 +13,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from transcription_tools.config import FasterWhisperParams, OpenAIWhisperParams, TranscriptionTier
+from transcription_tools.config import FasterWhisperParams, TranscriptionTier
 
 # OpenAI whisper decode parameters (not configurable per-tier).
 # These are unpacked as **kwargs into whisper's model.transcribe().
@@ -73,25 +73,24 @@ def _graceful_exit_handler():
         signal.signal(signal.SIGTERM, original_sigterm)
 
 
-def _detect_device(backend: str = "faster_whisper") -> str:
-    """Return the best available compute device.
+def _detect_ctranslate2_device() -> str:
+    """Return 'cuda' if ctranslate2 supports it, otherwise 'cpu'.
 
-    For faster-whisper: use ctranslate2's own CUDA check to avoid importing
-    torch first -- torch must not be imported before ctranslate2 on macOS or
-    the process will segfault due to conflicting OpenMP runtimes.
-
-    For OpenAI whisper: use torch directly, including MPS on Apple Silicon.
+    IMPORTANT: this function must be called BEFORE torch is imported.
+    On macOS, importing torch before ctranslate2 causes an OpenMP
+    runtime conflict that segfaults the process.
     """
-    if backend == "faster_whisper":
-        try:
-            import ctranslate2
-            if "cuda" in ctranslate2.get_supported_compute_types("cuda"):
-                return "cuda"
-        except (ImportError, RuntimeError, ValueError):
-            pass
-        return "cpu"
+    try:
+        import ctranslate2
+        if "cuda" in ctranslate2.get_supported_compute_types("cuda"):
+            return "cuda"
+    except (ImportError, RuntimeError, ValueError):
+        pass
+    return "cpu"
 
-    # OpenAI whisper backend -- safe to use torch
+
+def _detect_torch_device() -> str:
+    """Return the best torch-compatible device: 'cuda', 'mps', or 'cpu'."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -181,14 +180,8 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
 def transcribe(audio_path: str, tier: TranscriptionTier) -> str:
     """Dispatch to the correct Whisper backend based on tier config."""
     if isinstance(tier.backend_params, FasterWhisperParams):
-        device = _detect_device(backend="faster_whisper")
+        device = _detect_ctranslate2_device()
         return transcribe_faster_whisper(audio_path, tier, device)
 
-    if isinstance(tier.backend_params, OpenAIWhisperParams):
-        device = _detect_device(backend="whisper")
-        return transcribe_openai_whisper(audio_path, tier, device)
-
-    raise TypeError(
-        f"Unsupported backend_params type: {type(tier.backend_params).__name__}. "
-        "Expected FasterWhisperParams or OpenAIWhisperParams."
-    )
+    device = _detect_torch_device()
+    return transcribe_openai_whisper(audio_path, tier, device)
