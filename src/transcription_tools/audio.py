@@ -1,9 +1,8 @@
-"""Audio and video conversion via ffmpeg.
+"""Audio extraction and conversion via ffmpeg.
 
-Extracts and converts audio from any media file (audio or video) to
-16kHz mono WAV for Whisper consumption. Uses ffprobe to validate that
-the input contains an audio stream before conversion. Optionally
-applies audio enhancement filters for the veryslow tier.
+Converts media files to 16kHz mono WAV for Whisper consumption.
+Uses ffprobe to validate audio streams before conversion.
+Optionally applies enhancement filters for the veryslow tier.
 """
 
 from __future__ import annotations
@@ -92,13 +91,11 @@ def find_ffprobe() -> str:
 def probe_audio_streams(file_path: str) -> list[dict]:
     """Return metadata for all audio streams in a media file.
 
-    Uses ffprobe to inspect the file without decoding any media data.
     Returns an empty list if no audio streams are found.
 
     Raises:
         FileNotFoundError: If ffprobe is not installed.
-        RuntimeError: If ffprobe exits with a non-zero code (corrupt or
-                      unreadable file).
+        RuntimeError: If ffprobe cannot read the file.
     """
     ffprobe = find_ffprobe()
     safe_input = _copy_input_to_temp(file_path)
@@ -130,11 +127,7 @@ def probe_audio_streams(file_path: str) -> list[dict]:
 
 
 def validate_has_audio(file_path: str) -> None:
-    """Raise ValueError if the file contains no audio streams.
-
-    Call this before convert_to_wav() to produce a clear error message
-    instead of a cryptic ffmpeg failure.
-    """
+    """Raise ValueError if the file contains no audio streams."""
     streams = probe_audio_streams(file_path)
     if not streams:
         raise ValueError(
