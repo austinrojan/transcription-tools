@@ -49,13 +49,13 @@ class TestDetectCtranslate2Device:
 
     def test_returns_cuda_when_available(self):
         mock_ct2 = MagicMock()
-        mock_ct2.get_supported_compute_types.return_value = ["float32", "int8", "cuda"]
+        mock_ct2.get_supported_compute_types.return_value = ["float32", "int8"]
         with patch.dict(sys.modules, {"ctranslate2": mock_ct2}):
             assert _detect_ctranslate2_device() == "cuda"
 
     def test_returns_cpu_when_no_cuda(self):
         mock_ct2 = MagicMock()
-        mock_ct2.get_supported_compute_types.return_value = ["float32", "int8"]
+        mock_ct2.get_supported_compute_types.return_value = []
         with patch.dict(sys.modules, {"ctranslate2": mock_ct2}):
             assert _detect_ctranslate2_device() == "cpu"
 
