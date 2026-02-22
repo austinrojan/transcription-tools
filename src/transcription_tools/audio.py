@@ -38,6 +38,33 @@ ENHANCED_FILTER_CHAIN = (
     f"volume={VOLUME_BOOST}"
 )
 
+AUDIO_EXTENSIONS = frozenset({
+    ".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a",
+    ".opus", ".aiff", ".ape", ".wv", ".oga",
+})
+
+VIDEO_EXTENSIONS = frozenset({
+    ".mp4", ".mov", ".mkv", ".avi", ".webm", ".wmv", ".flv",
+    ".mpeg", ".mpg", ".m4v", ".ts", ".3gp", ".ogv", ".vob",
+    ".mts", ".m2ts",
+})
+
+SUPPORTED_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
+
+
+def classify_media_file(file_path: str) -> str:
+    """Classify a file as 'audio', 'video', or 'unknown' by extension.
+
+    This is a fast heuristic for logging and error messages. The
+    definitive check for audio content is probe_audio_streams().
+    """
+    ext = Path(file_path).suffix.lower()
+    if ext in AUDIO_EXTENSIONS:
+        return "audio"
+    if ext in VIDEO_EXTENSIONS:
+        return "video"
+    return "unknown"
+
 
 def find_ffmpeg() -> str:
     """Locate the ffmpeg binary on this system."""

@@ -12,9 +12,13 @@ from transcription_tools.audio import (
     find_ffprobe,
     probe_audio_streams,
     validate_has_audio,
+    classify_media_file,
     convert_to_wav,
     FFMPEG_CANDIDATES,
     FFPROBE_CANDIDATES,
+    AUDIO_EXTENSIONS,
+    VIDEO_EXTENSIONS,
+    SUPPORTED_EXTENSIONS,
     ENHANCED_FILTER_CHAIN,
     SAMPLE_RATE_HZ,
 )
@@ -151,6 +155,34 @@ class TestValidateHasAudio:
     def test_raises_when_no_audio(self, _):
         with pytest.raises(ValueError, match="No audio stream found"):
             validate_has_audio("/fake/silent_screencast.mp4")
+
+
+class TestClassifyMediaFile:
+    @pytest.mark.parametrize("filename,expected", [
+        ("recording.mp3", "audio"),
+        ("recording.wav", "audio"),
+        ("recording.flac", "audio"),
+        ("recording.m4a", "audio"),
+        ("recording.ogg", "audio"),
+        ("recording.aiff", "audio"),
+        ("lecture.mp4", "video"),
+        ("lecture.mov", "video"),
+        ("lecture.mkv", "video"),
+        ("lecture.webm", "video"),
+        ("lecture.avi", "video"),
+        ("lecture.m4v", "video"),
+        ("document.pdf", "unknown"),
+        ("notes.txt", "unknown"),
+    ])
+    def test_classifies_by_extension(self, filename, expected):
+        assert classify_media_file(f"/fake/{filename}") == expected
+
+    def test_case_insensitive(self):
+        assert classify_media_file("/fake/video.MP4") == "video"
+        assert classify_media_file("/fake/audio.WAV") == "audio"
+
+    def test_supported_extensions_is_union(self):
+        assert SUPPORTED_EXTENSIONS == AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
 
 
 @patch("transcription_tools.audio.find_ffmpeg", return_value="/usr/bin/ffmpeg")
