@@ -1,8 +1,7 @@
 """Tests for transcript cleanup module."""
 
-import pytest
-
 from transcription_tools.cleanup import (
+    MIN_ACCEPTABLE_WORD_RATIO,
     TERM_CORRECTIONS,
     WORD_COUNT_TOLERANCE_HIGH,
     WORD_COUNT_TOLERANCE_LOW,
@@ -32,6 +31,18 @@ class TestApplyBasicCleanup:
         text = "This is normal text without corrections needed."
         assert apply_basic_cleanup(text) == text
 
+    def test_corrects_contraction_at_start(self):
+        assert apply_basic_cleanup("gonna do it") == "going to do it"
+
+    def test_corrects_contraction_at_end(self):
+        assert apply_basic_cleanup("we gonna") == "we going to"
+
+    def test_corrects_contraction_after_punctuation(self):
+        assert "going to" in apply_basic_cleanup("I gonna, you know")
+
+    def test_empty_string(self):
+        assert apply_basic_cleanup("") == ""
+
 
 class TestResponseIsValid:
     """Test the quality-gate validation."""
@@ -49,6 +60,14 @@ class TestResponseIsValid:
     def test_zero_original_words(self):
         # Guard against division by zero — should accept (ratio defaults to 1.0)
         assert response_is_valid("some text", 0) is True
+
+    def test_exact_boundary_ratio_accepted(self):
+        """75/100 = 0.75 = MIN_ACCEPTABLE_WORD_RATIO → accepted (uses strict <)."""
+        assert response_is_valid("word " * 75, 100) is True
+
+    def test_just_below_boundary_ratio_rejected(self):
+        """74/100 = 0.74 < MIN_ACCEPTABLE_WORD_RATIO → rejected."""
+        assert response_is_valid("word " * 74, 100) is False
 
 
 class TestBuildCleanupPrompt:

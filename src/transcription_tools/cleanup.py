@@ -11,6 +11,8 @@ import os
 import re
 import time
 
+import openai
+
 from transcription_tools.config import DEFAULT_CLEANUP_MODEL
 from transcription_tools.text_processing import (
     sanitize_model_output,
@@ -45,6 +47,16 @@ TERM_CORRECTIONS = [
     (" gotta ", " got to "), (" kinda ", " kind of "),
 ]
 
+_COMPILED_CORRECTIONS: list[tuple[re.Pattern[str], str]] = []
+for _old, _new in TERM_CORRECTIONS:
+    _stripped = _old.strip()
+    if _old != _stripped:
+        _pattern = re.compile(r"\b" + re.escape(_stripped) + r"\b", re.IGNORECASE)
+    else:
+        _pattern = re.compile(re.escape(_stripped), re.IGNORECASE)
+    _COMPILED_CORRECTIONS.append((_pattern, _new.strip()))
+del _old, _new, _stripped, _pattern
+
 META_PHRASES = [
     "here is", "here's the", "cleaned transcript",
     "the transcript", "the speaker", "this chunk",
@@ -53,8 +65,8 @@ META_PHRASES = [
 
 def apply_basic_cleanup(text: str) -> str:
     """Regex-based fallback: applies TERM_CORRECTIONS to raw text."""
-    for old, new in TERM_CORRECTIONS:
-        text = re.sub(re.escape(old), new, text, flags=re.IGNORECASE)
+    for pattern, replacement in _COMPILED_CORRECTIONS:
+        text = pattern.sub(replacement, text)
     return text
 
 
@@ -71,7 +83,7 @@ def response_is_valid(response: str, original_word_count: int) -> bool:
 
 
 def build_cleanup_prompt(chunk_text: str, chunk_idx: int, total: int) -> str:
-    """Build the system prompt for a cleanup API call."""
+    """Build the prompt for a cleanup API call."""
     word_count = len(chunk_text.split())
     correction_lines = "\n".join(
         f"- '{old.strip()}' -> '{new}'" for old, new in TERM_CORRECTIONS
@@ -172,8 +184,9 @@ class TranscriptCleaner:
 
         try:
             raw = self._call_openai(prompt)
-        except Exception as exc:
-            return self._handle_api_error(exc, chunk_idx)
+        except openai.OpenAIError as exc:
+            self._handle_api_error(exc, chunk_idx)
+            return None
 
         cleaned = sanitize_model_output(raw)
         ratio = len(cleaned.split()) / original_word_count if original_word_count else 1.0

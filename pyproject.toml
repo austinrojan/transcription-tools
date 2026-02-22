@@ -21,3 +21,6 @@ transcribe-fast = "transcription_tools.cli:fast"
 transcribe-medium = "transcription_tools.cli:medium"
 transcribe-slow = "transcription_tools.cli:slow"
 transcribe-veryslow = "transcription_tools.cli:veryslow"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

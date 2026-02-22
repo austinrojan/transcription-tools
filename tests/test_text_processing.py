@@ -92,6 +92,14 @@ class TestSplitAtWordBoundaries:
         with pytest.raises(ValueError, match="max_chars must be positive"):
             split_at_word_boundaries("hello", -5)
 
+    def test_word_exceeding_max_chars_is_hard_cut(self):
+        """A word longer than max_chars is hard-cut into max_chars pieces."""
+        long_word = "a" * 50
+        pieces = split_at_word_boundaries(long_word, 10)
+        assert len(pieces) == 5
+        assert all(len(p) == 10 for p in pieces)
+        assert "".join(pieces) == long_word
+
 
 class TestSanitizeModelOutput:
     def test_strips_cleaned_up_prefix(self):
