@@ -58,7 +58,7 @@ def _resolve_cleanup_model(args: argparse.Namespace) -> str:
 
 def _run_transcription(input_path: Path, tier: TranscriptionTier, output_path: Path) -> None:
     media_type = classify_media_file(str(input_path))
-    label = "video" if media_type == "video" else "audio"
+    label = media_type if media_type != "unknown" else "media"
     print(f"Converting {label} '{input_path.name}' to 16kHz mono WAV...")
     wav_path = convert_to_wav(str(input_path), enhanced=tier.enhanced_audio)
     try:
