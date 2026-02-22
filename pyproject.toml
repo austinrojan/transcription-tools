@@ -24,7 +24,7 @@ transcribe-slow = "transcription_tools.cli:slow"
 transcribe-veryslow = "transcription_tools.cli:veryslow"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 markers = [
     "requires_ffmpeg: skip test if ffmpeg is not installed",
 ]
