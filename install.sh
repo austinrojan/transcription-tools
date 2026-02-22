@@ -172,10 +172,12 @@ install_dependencies() {
             warn "PyTorch install failed (non-fatal)"
 
         ohai "[2/4] Installing OpenAI Whisper..."
-        "$pip" install openai-whisper --quiet
+        "$pip" install openai-whisper --quiet || \
+            warn "openai-whisper install failed (Slow/Very Slow tiers may be unavailable)"
 
         ohai "[3/4] Installing faster-whisper..."
-        "$pip" install faster-whisper --quiet
+        "$pip" install faster-whisper --quiet || \
+            abort "faster-whisper installation failed."
 
         ohai "[4/4] Installing OpenAI client..."
         "$pip" install openai --quiet
@@ -192,7 +194,8 @@ install_dependencies() {
             warn "openai-whisper install failed (non-fatal for Intel)"
 
         ohai "[3/4] Installing faster-whisper..."
-        "$pip" install faster-whisper --quiet
+        "$pip" install faster-whisper --quiet || \
+            abort "faster-whisper installation failed."
 
         ohai "[4/4] Installing OpenAI client..."
         "$pip" install openai --quiet
@@ -272,9 +275,11 @@ WRAPPER
         chmod +x "$wrapper"
 
         if [ "$needs_sudo" = true ]; then
-            sudo mv "$wrapper" "/usr/local/bin/$cmd"
+            sudo mv "$wrapper" "/usr/local/bin/$cmd" || \
+                abort "Failed to install $cmd (sudo required)"
         else
-            mv "$wrapper" "/usr/local/bin/$cmd"
+            mv "$wrapper" "/usr/local/bin/$cmd" || \
+                abort "Failed to install $cmd"
         fi
     done
 

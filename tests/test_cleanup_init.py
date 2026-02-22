@@ -30,6 +30,7 @@ class TestTranscriptCleanerInit:
             os.environ.pop("OPENAI_API_KEY", None)
             TranscriptCleaner()
         mock_get_config.assert_called_once()
+        mock_openai_cls.assert_called_once_with(api_key="sk-from-config", base_url=None)
 
     @patch("transcription_tools.cleanup.get_config_value", return_value=None)
     def test_raises_when_no_key_anywhere(self, mock_get_config):

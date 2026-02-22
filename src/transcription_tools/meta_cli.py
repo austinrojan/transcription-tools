@@ -170,7 +170,11 @@ def _uninstall_command() -> None:
             subprocess.run(["sudo", "rm", "-f", str(f)], check=False)
     for d in paths["dirs"]:
         if d.exists():
-            shutil.rmtree(d, ignore_errors=True)
+            try:
+                shutil.rmtree(d)
+            except PermissionError:
+                import subprocess
+                subprocess.run(["sudo", "rm", "-rf", str(d)], check=False)
 
     print("\nTranscription Tools has been removed.")
     sys.exit(0)
