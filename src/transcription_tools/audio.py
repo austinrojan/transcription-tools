@@ -44,7 +44,7 @@ def find_ffmpeg() -> str:
     )
 
 
-def _copy_to_temp(input_path: str) -> Path:
+def _copy_input_to_temp(input_path: str) -> Path:
     """Copy input file to a temp directory so ffmpeg can read it.
 
     On macOS, Automator Quick Actions lack TCC authorization for
@@ -75,7 +75,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     tmp_path = tmp.name
 
     # Copy to temp to avoid macOS TCC restrictions in Automator context
-    safe_input = _copy_to_temp(input_path)
+    safe_input = _copy_input_to_temp(input_path)
 
     result_path = None
     try:

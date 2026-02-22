@@ -34,7 +34,7 @@ class TestFindFfmpeg:
 
 
 @patch("transcription_tools.audio.find_ffmpeg", return_value="/usr/bin/ffmpeg")
-@patch("transcription_tools.audio._copy_to_temp")
+@patch("transcription_tools.audio._copy_input_to_temp")
 @patch("transcription_tools.audio.tempfile")
 @patch("transcription_tools.audio.subprocess")
 class TestConvertToWav:

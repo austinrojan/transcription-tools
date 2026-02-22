@@ -34,7 +34,7 @@ MAX_RATE_LIMIT_WAIT_SECONDS = 120
 MIN_ACCEPTABLE_WORD_RATIO = 0.75
 WORD_COUNT_TOLERANCE_LOW = 0.8
 WORD_COUNT_TOLERANCE_HIGH = 1.2
-META_CHECK_PREFIX_CHARS = 200
+COMMENTARY_CHECK_PREFIX_CHARS = 200
 
 # -- Domain-specific corrections -----------------------------------------
 TERM_CORRECTIONS = [
@@ -78,7 +78,7 @@ def response_is_valid(response: str, original_word_count: int) -> bool:
     if ratio < MIN_ACCEPTABLE_WORD_RATIO:
         return False
 
-    prefix = response.lower()[:META_CHECK_PREFIX_CHARS]
+    prefix = response.lower()[:COMMENTARY_CHECK_PREFIX_CHARS]
     return not any(phrase in prefix for phrase in META_PHRASES)
 
 
@@ -132,7 +132,7 @@ class TranscriptCleaner:
 
     # -- API interaction -------------------------------------------------
 
-    def _call_openai(self, prompt: str) -> str:
+    def _send_cleanup_request(self, prompt: str) -> str:
         """Send prompt to OpenAI, return response text."""
         response = self._client.chat.completions.create(
             model=self._model,
@@ -183,7 +183,7 @@ class TranscriptCleaner:
         )
 
         try:
-            raw = self._call_openai(prompt)
+            raw = self._send_cleanup_request(prompt)
         except openai.OpenAIError as exc:
             self._handle_api_error(exc, chunk_idx)
             return None
