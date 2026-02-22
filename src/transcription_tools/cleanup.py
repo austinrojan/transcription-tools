@@ -12,8 +12,10 @@ import re
 import time
 
 import openai
+from openai import OpenAI
 
 from transcription_tools.config import DEFAULT_CLEANUP_MODEL
+from transcription_tools.user_config import get_config_value
 from transcription_tools.text_processing import (
     sanitize_model_output,
     split_at_word_boundaries,
@@ -131,11 +133,12 @@ class TranscriptCleaner:
         model: str = DEFAULT_CLEANUP_MODEL,
         base_url: str | None = None,
     ) -> None:
-        from openai import OpenAI
-
-        api_key = os.environ.get("OPENAI_API_KEY")
+        api_key = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY not set in environment")
+            raise RuntimeError(
+                "No OpenAI API key configured. "
+                "Run 'transcription-tools config --set-api-key' to set one."
+            )
 
         self._model = model
         self._client = OpenAI(api_key=api_key, base_url=base_url)

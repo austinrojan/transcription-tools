@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "transcription-tools"
 version = "2.0.0"
 description = "macOS audio and video transcription with Finder integration"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
     "openai-whisper",
@@ -16,6 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
+transcription-tools = "transcription_tools.meta_cli:main"
 transcribe-veryfast = "transcription_tools.cli:veryfast"
 transcribe-fast = "transcription_tools.cli:fast"
 transcribe-medium = "transcription_tools.cli:medium"

@@ -6,6 +6,7 @@ This is the single source of truth — no parameters are hardcoded elsewhere.
 
 from __future__ import annotations
 
+import importlib.util
 from dataclasses import dataclass
 from types import MappingProxyType
 
@@ -131,6 +132,35 @@ TIERS: dict[str, TranscriptionTier] = {
         save_backup=True,
     ),
 }
+
+
+def _is_importable(module_name: str) -> bool:
+    """Check if a module is available without importing it.
+
+    Uses importlib.util.find_spec() to avoid the cost of actually
+    loading heavy libraries like PyTorch (several seconds, hundreds of MB).
+    """
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except (ModuleNotFoundError, ValueError):
+        return False
+
+
+def get_available_tiers() -> dict[str, TranscriptionTier]:
+    """Return only tiers whose backend dependencies are installed.
+
+    Tiers using FasterWhisperParams require faster_whisper.
+    Tiers using OpenAIWhisperParams require torch (via openai-whisper).
+    """
+    available = {}
+    for name, tier in TIERS.items():
+        if isinstance(tier.backend_params, OpenAIWhisperParams):
+            if _is_importable("torch"):
+                available[name] = tier
+        elif _is_importable("faster_whisper"):
+            available[name] = tier
+    return available
+
 
 # Cleanup model configuration — single source of truth for cli.py and cleanup.py
 DEFAULT_CLEANUP_MODEL = "gpt-5-nano"

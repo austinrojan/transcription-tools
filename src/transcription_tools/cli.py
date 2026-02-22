@@ -16,8 +16,10 @@ from transcription_tools.config import (
     ALLOWED_CLEANUP_MODELS,
     DEFAULT_CLEANUP_MODEL,
     FasterWhisperParams,
+    OpenAIWhisperParams,
     TIERS,
     TranscriptionTier,
+    get_available_tiers,
 )
 from transcription_tools.transcribe import transcribe
 
@@ -32,6 +34,10 @@ def _parse_args(tier: TranscriptionTier) -> argparse.Namespace:
     cleanup_group.add_argument(
         "--no-cleanup", action="store_true",
         help="Skip the OpenAI transcript cleanup pass.",
+    )
+    cleanup_group.add_argument(
+        "--cleanup", action="store_true",
+        help="Require cleanup (fail if no API key is configured).",
     )
     cleanup_group.add_argument(
         "--cleanup-only", action="store_true",
@@ -89,6 +95,18 @@ def run(tier_name: str) -> None:
     os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
     tier = TIERS[tier_name]
+
+    available = get_available_tiers()
+    if tier_name not in available:
+        dep_name = "PyTorch" if isinstance(tier.backend_params, OpenAIWhisperParams) else "faster-whisper"
+        available_names = ", ".join(sorted(available.keys())) or "none"
+        print(
+            f"Error: The '{tier_name}' tier requires {dep_name}, "
+            f"which is not installed on this system.\n"
+            f"Available tiers: {available_names}"
+        )
+        sys.exit(1)
+
     args = _parse_args(tier)
 
     input_path = Path(args.input_file)
@@ -121,6 +139,15 @@ def run(tier_name: str) -> None:
     try:
         raw_text = output_path.read_text(encoding="utf-8")
         _run_cleanup(raw_text, model, base_url, output_path)
+    except RuntimeError as e:
+        if "API key" in str(e) and not args.cleanup:
+            print(
+                f"\nNote: {e}\n"
+                "Skipping transcript cleanup. Raw transcript is still saved."
+            )
+        else:
+            print(f"Cleanup step failed: {e}", file=sys.stderr)
+            sys.exit(1)
     except Exception as e:
         print(f"Cleanup step failed: {e}", file=sys.stderr)
         sys.exit(1)
