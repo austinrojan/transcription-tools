@@ -59,12 +59,22 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-[ -f ~/.zshrc ] &amp;&amp; eval "$(grep '^export ' ~/.zshrc 2>/dev/null)"
+					<string>export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+export PATH="$HOME/Library/Application Support/transcription-tools/ffmpeg:$PATH"
 
-for f in "$@"
-do
-    transcribe-veryslow "$f"
+for f in "$@"; do
+    if ! command -v transcribe-veryslow &amp;&gt;/dev/null; then
+        osascript -e 'display dialog "Transcription Tools is not installed.\n\nVisit https://github.com/austinrojan/transcription-tools for installation instructions." buttons {"OK"} default button "OK" with icon caution with title "Transcription Tools"'
+        exit 1
+    fi
+    transcribe-veryslow "$f" 2&gt;&amp;1 | tee -a "$HOME/Library/Logs/transcription-tools.log"
+    STATUS=$?
+    BASENAME=$(basename "$f")
+    if [ $STATUS -eq 0 ]; then
+        osascript -e "display notification \"Transcription complete: $BASENAME\" with title \"Transcription Tools\""
+    else
+        osascript -e "display notification \"Transcription failed: $BASENAME. Check log for details.\" with title \"Transcription Tools\""
+    fi
 done</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
