@@ -63,6 +63,16 @@ detect_architecture() {
     MACOS_VERSION=$(sw_vers -productVersion | cut -d. -f1)
 }
 
+# -- Existing installation detection --
+detect_existing_install() {
+    IS_UPGRADE=false
+    INSTALLED_VERSION=""
+    if [ -f "$INSTALL_DIR/version.txt" ]; then
+        INSTALLED_VERSION=$(cat "$INSTALL_DIR/version.txt")
+        IS_UPGRADE=true
+    fi
+}
+
 # -- Prerequisite checks --
 check_prerequisites() {
     local failures=0
@@ -135,6 +145,15 @@ download_with_retry() {
 
 # -- Install Python from python-build-standalone --
 install_python() {
+    # Skip if same version already installed
+    if "$PYTHON_DIR/bin/python3" --version 2>/dev/null | grep -q "$PYTHON_VERSION"; then
+        success "Python $PYTHON_VERSION already installed (skipped)"
+        return
+    fi
+
+    # Clean old version if present
+    [ -d "$PYTHON_DIR" ] && rm -rf "$PYTHON_DIR"
+
     ohai "Installing Python $PYTHON_VERSION..."
 
     local python_url="https://github.com/astral-sh/python-build-standalone/releases/download/${PBS_VERSION}/cpython-${PYTHON_VERSION}+${PBS_VERSION}-${PLATFORM}-install_only_stripped.tar.gz"
@@ -156,10 +175,27 @@ install_python() {
 
 # -- Create virtual environment --
 create_venv() {
-    ohai "Creating virtual environment..."
-    "$PYTHON_DIR/bin/python3" -m venv "$VENV_DIR"
-    "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel --quiet
-    success "Virtual environment created"
+    if [ "$IS_UPGRADE" = true ] && [ -d "$VENV_DIR" ]; then
+        if [ "$INSTALLED_VERSION" = "$TT_VERSION" ]; then
+            # Same version — upgrade in place (preserves site-packages)
+            ohai "Upgrading virtual environment..."
+            "$PYTHON_DIR/bin/python3" -m venv --upgrade "$VENV_DIR"
+            "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel --quiet
+            success "Virtual environment upgraded"
+        else
+            # Version changed — Python binary may differ, recreate cleanly
+            ohai "Recreating virtual environment for v${TT_VERSION}..."
+            rm -rf "$VENV_DIR"
+            "$PYTHON_DIR/bin/python3" -m venv "$VENV_DIR"
+            "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel --quiet
+            success "Virtual environment created"
+        fi
+    else
+        ohai "Creating virtual environment..."
+        "$PYTHON_DIR/bin/python3" -m venv "$VENV_DIR"
+        "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel --quiet
+        success "Virtual environment created"
+    fi
 }
 
 # -- Install Python dependencies --
@@ -206,6 +242,12 @@ install_dependencies() {
 
 # -- Install static ffmpeg binary --
 install_ffmpeg() {
+    # Skip if ffmpeg already installed and working
+    if [ -x "$FFMPEG_DIR/ffmpeg" ] && "$FFMPEG_DIR/ffmpeg" -version &>/dev/null; then
+        success "ffmpeg already installed (skipped)"
+        return
+    fi
+
     ohai "Installing ffmpeg..."
 
     local ffmpeg_url="https://evermeet.cx/ffmpeg/getrelease/zip"
@@ -319,6 +361,7 @@ install_workflows() {
     fi
 
     for tier in "${workflows[@]}"; do
+        rm -rf "$SERVICES_DIR/Transcribe Audio - ${tier}.workflow"
         cp -R "$source_dir/Transcribe Audio - ${tier}.workflow" "$SERVICES_DIR/"
     done
 
@@ -344,6 +387,12 @@ print_banner() {
 }
 
 confirm_installation() {
+    if [ "$IS_UPGRADE" = true ]; then
+        echo "  ${YELLOW}Existing installation detected (v${INSTALLED_VERSION}).${RESET}"
+        echo "  This will upgrade to v${TT_VERSION}."
+        echo ""
+    fi
+
     if [ "$IS_APPLE_SILICON" = true ]; then
         echo "  Architecture:   Apple Silicon (arm64)"
     else
@@ -357,7 +406,11 @@ confirm_installation() {
     fi
 
     echo ""
-    read -rp "  Proceed with installation? [Y/n] " response
+    if [ "$IS_UPGRADE" = true ]; then
+        read -rp "  Proceed with upgrade? [Y/n] " response
+    else
+        read -rp "  Proceed with installation? [Y/n] " response
+    fi
     case "${response:-Y}" in
         [yY]|[yY][eE][sS]|"") ;;
         *) echo "  Installation cancelled."; exit 0 ;;
@@ -389,6 +442,7 @@ print_success() {
 main() {
     print_banner
     detect_architecture
+    detect_existing_install
     check_prerequisites
     confirm_installation
     install_python
