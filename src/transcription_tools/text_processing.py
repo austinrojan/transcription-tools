@@ -1,7 +1,4 @@
-"""Text processing for transcript chunking and validation.
-
-Handles chunk splitting for API calls and output sanitization.
-"""
+"""Text processing for transcript chunking and validation."""
 
 from __future__ import annotations
 
@@ -9,11 +6,7 @@ import re
 
 
 def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
-    """Split text into chunks on sentence boundaries.
-
-    Prefers splitting at sentence-ending punctuation. Falls back to
-    hard-cutting at max_chars for sentences that exceed the limit.
-    """
+    """Split text into chunks on sentence boundaries."""
     if max_chars < 1:
         raise ValueError(f"max_chars must be positive, got {max_chars}")
     stripped = text.strip()
@@ -51,12 +44,7 @@ def split_into_chunks(text: str, max_chars: int = 2500) -> list[str]:
 
 
 def split_at_word_boundaries(text: str, max_chars: int) -> list[str]:
-    """Split text into pieces at whitespace, respecting max_chars.
-
-    Prefers splitting at the last whitespace before max_chars. When no
-    whitespace exists within a max_chars window (e.g. a single word
-    exceeds max_chars), the text is hard-cut at max_chars.
-    """
+    """Split text into pieces at whitespace, respecting max_chars."""
     if max_chars < 1:
         raise ValueError(f"max_chars must be positive, got {max_chars}")
     pieces: list[str] = []

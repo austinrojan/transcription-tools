@@ -1,7 +1,6 @@
 """User configuration via ~/.config/transcription-tools/config.toml.
 
-Provides persistent storage for API keys and preferences.
-Environment variables always take precedence over config file values.
+Environment variables take precedence over config file values.
 """
 
 from __future__ import annotations

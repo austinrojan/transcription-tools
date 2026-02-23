@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """Generate Automator .workflow bundles programmatically.
 
-Reads the Fast workflow as a template and generates all five tier
-workflows with improved shell scripts (installation check, logging,
-notifications). Also patches Info.plist so each workflow has the
-correct service menu name.
-
 Usage: python scripts/generate_workflows.py
 """
 

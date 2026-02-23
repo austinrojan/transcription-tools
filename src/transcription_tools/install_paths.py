@@ -1,8 +1,4 @@
-"""Install directory layout constants.
-
-Single source of truth for the on-disk layout used by the installer,
-update command, and uninstall command.
-"""
+"""Install directory layout constants."""
 
 from __future__ import annotations
 
