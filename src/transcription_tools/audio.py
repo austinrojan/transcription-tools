@@ -1,9 +1,4 @@
-"""Audio extraction and conversion via ffmpeg.
-
-Converts media files to 16kHz mono WAV for Whisper consumption.
-Uses ffprobe to validate audio streams before conversion.
-Optionally applies enhancement filters for the veryslow tier.
-"""
+"""Audio extraction and conversion via ffmpeg."""
 
 from __future__ import annotations
 
