@@ -154,8 +154,10 @@ class TestMainDispatch:
 
     @patch("sys.argv", ["transcription-tools", "version"])
     def test_version_prints_version(self, capsys):
+        from transcription_tools import __version__
+
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code in (0, None)
         output = capsys.readouterr().out
-        assert "2.0.0" in output
+        assert __version__ in output
