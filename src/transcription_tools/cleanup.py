@@ -1,9 +1,4 @@
-"""OpenAI-powered transcript cleanup.
-
-Sends raw Whisper output to a chat model for spelling, grammar, and
-formatting fixes. Handles chunking, rate limiting with exponential
-backoff, and quality validation.
-"""
+"""OpenAI-powered transcript cleanup."""
 
 from __future__ import annotations
 
@@ -22,23 +17,19 @@ from transcription_tools.text_processing import (
     split_into_chunks,
 )
 
-# -- Chunking thresholds -------------------------------------------------
 MAX_CHUNK_CHARS = 2500
 MIN_SUBDIVIDE_CHARS = 1000
 
-# -- Retry and rate-limiting ---------------------------------------------
 MAX_RETRIES = 3
 INTER_REQUEST_DELAY_SECONDS = 0.5
 DEFAULT_RATE_LIMIT_WAIT_SECONDS = 20
 MAX_RATE_LIMIT_WAIT_SECONDS = 120
 
-# -- Validation thresholds -----------------------------------------------
 MIN_ACCEPTABLE_WORD_RATIO = 0.75
 WORD_COUNT_TOLERANCE_LOW = 0.8
 WORD_COUNT_TOLERANCE_HIGH = 1.2
 COMMENTARY_CHECK_PREFIX_CHARS = 200
 
-# -- Domain-specific corrections -----------------------------------------
 TERM_CORRECTIONS = [
     ("sub splash", "Subsplash"), ("sub-splash", "Subsplash"),
     ("subsplash", "Subsplash"),
@@ -145,8 +136,6 @@ class TranscriptCleaner:
         self._consecutive_rate_limits = 0
         self._rate_limit_wait_seconds = DEFAULT_RATE_LIMIT_WAIT_SECONDS
 
-    # -- API interaction -------------------------------------------------
-
     def _send_cleanup_request(self, prompt: str) -> str:
         """Send prompt to OpenAI, return response text."""
         response = self._client.chat.completions.create(
@@ -176,8 +165,6 @@ class TranscriptCleaner:
             return
 
         print(f"[cleanup] chunk {chunk_idx} error: {str(exc)[:100]}")
-
-    # -- Chunk processing ------------------------------------------------
 
     def _process_chunk(
         self, chunk_text: str, chunk_idx: int, total: int, attempt: int = 1,
@@ -214,8 +201,6 @@ class TranscriptCleaner:
         print(f"[cleanup] chunk {chunk_idx}/{total}: done (ratio={ratio:.2f})")
         return cleaned
 
-    # -- Adaptive chunking -----------------------------------------------
-
     def _process_with_adaptive_chunking(self, text: str, idx: int, total: int) -> str:
         """Try to process a chunk, subdividing on repeated failure."""
         max_chars = len(text)
@@ -242,8 +227,6 @@ class TranscriptCleaner:
 
         print(f"[cleanup] chunk {idx}: falling back to basic cleanup")
         return apply_basic_cleanup(text)
-
-    # -- Public API -------------------------------------------------------
 
     def clean(self, raw_text: str) -> str:
         """Clean a raw transcript, returning the cleaned version."""
