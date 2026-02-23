@@ -1,8 +1,4 @@
-"""Tier configuration for transcription tools.
-
-Each tier defines which Whisper backend to use and its exact parameters.
-This is the single source of truth — no parameters are hardcoded elsewhere.
-"""
+"""Tier definitions — single source of truth for all transcription parameters."""
 
 from __future__ import annotations
 
@@ -43,13 +39,11 @@ class TranscriptionTier:
     whisper_model: str
     backend_params: FasterWhisperParams | OpenAIWhisperParams
 
-    # Shared across both backends
     beam_size: int = 1
     best_of: int = 1
     temperature: float = 0.0
     condition_on_previous_text: bool = False
 
-    # Output behavior
     enhanced_audio: bool = False
     save_backup: bool = False
 
@@ -135,11 +129,7 @@ TIERS: dict[str, TranscriptionTier] = {
 
 
 def _is_importable(module_name: str) -> bool:
-    """Check if a module is available without importing it.
-
-    Uses importlib.util.find_spec() to avoid the cost of actually
-    loading heavy libraries like PyTorch (several seconds, hundreds of MB).
-    """
+    """Check if a module is available without importing it."""
     try:
         return importlib.util.find_spec(module_name) is not None
     except (ModuleNotFoundError, ValueError):
@@ -147,11 +137,7 @@ def _is_importable(module_name: str) -> bool:
 
 
 def get_available_tiers() -> dict[str, TranscriptionTier]:
-    """Return only tiers whose backend dependencies are installed.
-
-    Tiers using FasterWhisperParams require faster_whisper.
-    Tiers using OpenAIWhisperParams require torch (via openai-whisper).
-    """
+    """Return only tiers whose backend dependencies are installed."""
     available = {}
     for name, tier in TIERS.items():
         if isinstance(tier.backend_params, OpenAIWhisperParams):
@@ -162,6 +148,5 @@ def get_available_tiers() -> dict[str, TranscriptionTier]:
     return available
 
 
-# Cleanup model configuration — single source of truth for cli.py and cleanup.py
 DEFAULT_CLEANUP_MODEL = "gpt-5-nano"
 ALLOWED_CLEANUP_MODELS = frozenset({"gpt-5-nano", "gpt-5-mini", "gpt-5"})
