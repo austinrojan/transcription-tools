@@ -49,6 +49,7 @@ Issues = "https://github.com/austinrojan/transcription-tools/issues"
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-cov",
     "ruff",
 ]
 
@@ -56,6 +57,18 @@ dev = [
 pythonpath = ["src", "."]
 markers = [
     "requires_ffmpeg: skip test if ffmpeg is not installed",
+]
+
+[tool.coverage.run]
+source = ["transcription_tools"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.ruff]
