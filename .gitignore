@@ -11,3 +11,10 @@ build/
 .venv/
 .claude/
 .worktrees/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Packaging
+*.egg
