@@ -1,4 +1,5 @@
 [![Tests](https://github.com/austinrojan/transcription-tools/actions/workflows/test.yml/badge.svg)](https://github.com/austinrojan/transcription-tools/actions/workflows/test.yml)
+[![Lint: ruff](https://img.shields.io/badge/lint-ruff-purple.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 
@@ -136,6 +137,43 @@ This removes all installed files. You'll be asked whether to also remove your co
 - **Apple Silicon (M1/M2/M3/M4):** All 5 tiers installed.
 - **Intel:** All 5 tiers installed. Slow and Very Slow depend on PyTorch — the installer will warn you if PyTorch fails to install on your system.
 
+## How It Works
+
+```
+Input file
+    │
+    ▼
+Audio extraction  ──▶  ffmpeg converts to 16 kHz mono WAV
+    │
+    ▼
+Transcription     ──▶  Whisper speech-to-text
+    │                   (backend selected by tier)
+    ▼
+Cleanup           ──▶  OpenAI fixes spelling & grammar
+    │                   (chunked, with retry + fallback)
+    ▼
+Output .txt file
+```
+
+**Dual Whisper backends.** Lower tiers (Very Fast through Medium) use
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper), a CTranslate2-based
+engine that is significantly faster than the original. Upper tiers (Slow, Very Slow)
+use OpenAI's Whisper, which supports features like initial prompting for
+domain-specific vocabulary. The tier config is a discriminated union on frozen
+dataclasses — no if/else chains in the transcription path.
+
+**Chunked AI cleanup.** Raw Whisper output is split into ~2,500-character chunks
+at sentence boundaries, then sent through the OpenAI chat API with a structured
+prompt that enforces word-count ratios. If a chunk fails validation (truncation,
+hallucinated commentary), it is subdivided and retried with exponential backoff.
+After all retries, the system falls back to regex-based corrections so you always
+get output.
+
+**macOS integration.** The installer generates Automator Quick Action workflows
+so transcription is available from the Finder right-click menu. Input files are
+copied to a temp directory before processing to work around macOS TCC sandbox
+restrictions on Automator.
+
 ## Development
 
 ```bash
@@ -143,7 +181,7 @@ git clone https://github.com/austinrojan/transcription-tools.git
 cd transcription-tools
 python3 -m venv venv && source venv/bin/activate
 pip install -e ".[dev]"
-pytest tests/ -v
+pytest tests/ -v --cov
 ruff check src/ tests/
 ```
 
