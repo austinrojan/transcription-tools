@@ -219,7 +219,7 @@ install_dependencies() {
         "$pip" install openai --quiet
     else
         ohai "[1/4] Installing PyTorch ${PYTORCH_VERSION_INTEL} (Intel)..."
-        "$pip" install "torch==${PYTORCH_VERSION_INTEL}" \
+        "$pip" install "torch==${PYTORCH_VERSION_INTEL}" "numpy<2" \
             --index-url https://download.pytorch.org/whl/cpu --quiet 2>/dev/null || {
             warn "PyTorch install failed on Intel Mac."
             warn "Slow and Very Slow tiers will not be available."
