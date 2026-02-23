@@ -1,3 +1,7 @@
+[![Tests](https://github.com/austinrojan/transcription-tools/actions/workflows/test.yml/badge.svg)](https://github.com/austinrojan/transcription-tools/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+
 # Transcription Tools
 
 Local audio and video transcription for macOS, using Whisper for speech-to-text and (optionally) OpenAI for transcript cleanup.
@@ -138,8 +142,9 @@ This removes all installed files. You'll be asked whether to also remove your co
 git clone https://github.com/austinrojan/transcription-tools.git
 cd transcription-tools
 python3 -m venv venv && source venv/bin/activate
-pip install -e .
-python3 -m pytest tests/ -v
+pip install -e ".[dev]"
+pytest tests/ -v
+ruff check src/ tests/
 ```
 
 ## License
