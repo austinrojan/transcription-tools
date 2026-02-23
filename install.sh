@@ -3,13 +3,13 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/austinrojan/transcription-tools/main/install.sh | bash
 set -euo pipefail
 
-# -- Version pins (update with each release) --
+# Version pins
 TT_VERSION="2.0.2"
 PYTHON_VERSION="3.12.12"
 PBS_VERSION="20260211"
 PYTORCH_VERSION_INTEL="2.2.2"
 
-# -- Paths --
+# Paths
 INSTALL_DIR="$HOME/Library/Application Support/transcription-tools"
 VENV_DIR="$INSTALL_DIR/venv"
 PYTHON_DIR="$INSTALL_DIR/python"
@@ -17,7 +17,7 @@ FFMPEG_DIR="$INSTALL_DIR/ffmpeg"
 SERVICES_DIR="$HOME/Library/Services"
 LOGFILE="$HOME/Library/Logs/transcription-tools-install.log"
 
-# -- Color helpers (degrade gracefully if no tty) --
+# Color helpers
 if [ -t 1 ] && tput colors &>/dev/null; then
     BOLD=$(tput bold); BLUE=$(tput setaf 4); GREEN=$(tput setaf 2)
     RED=$(tput setaf 1); YELLOW=$(tput setaf 3); RESET=$(tput sgr0)
@@ -30,7 +30,6 @@ success() { echo "${GREEN}  ✓ $*${RESET}"; }
 warn()    { echo "${YELLOW}  ! $*${RESET}"; }
 abort()   { echo "${RED}  ✗ $*${RESET}" >&2; exit 1; }
 
-# -- Global cleanup trap --
 _cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then
@@ -44,7 +43,6 @@ _cleanup() {
 }
 trap _cleanup EXIT
 
-# -- Architecture detection --
 detect_architecture() {
     ARCH=$(uname -m)
     case "$ARCH" in
@@ -63,7 +61,6 @@ detect_architecture() {
     MACOS_VERSION=$(sw_vers -productVersion | cut -d. -f1)
 }
 
-# -- Existing installation detection --
 detect_existing_install() {
     IS_UPGRADE=false
     INSTALLED_VERSION=""
@@ -73,7 +70,6 @@ detect_existing_install() {
     fi
 }
 
-# -- Prerequisite checks --
 check_prerequisites() {
     local failures=0
 
@@ -121,7 +117,6 @@ check_prerequisites() {
     fi
 }
 
-# -- Download helper with retries --
 download_with_retry() {
     local url="$1"
     local output="$2"
@@ -143,7 +138,6 @@ download_with_retry() {
     abort "Failed to download $description after $max_attempts attempts."
 }
 
-# -- Install Python from python-build-standalone --
 install_python() {
     # Skip if same version already installed
     if "$PYTHON_DIR/bin/python3" --version 2>/dev/null | grep -q "$PYTHON_VERSION"; then
@@ -173,7 +167,6 @@ install_python() {
     success "Python $("$PYTHON_DIR/bin/python3" --version 2>&1)"
 }
 
-# -- Create virtual environment --
 create_venv() {
     if [ "$IS_UPGRADE" = true ] && [ -d "$VENV_DIR" ]; then
         if [ "$INSTALLED_VERSION" = "$TT_VERSION" ]; then
@@ -198,7 +191,6 @@ create_venv() {
     fi
 }
 
-# -- Install Python dependencies --
 install_dependencies() {
     local pip="$VENV_DIR/bin/pip"
 
@@ -240,7 +232,6 @@ install_dependencies() {
     success "Dependencies installed"
 }
 
-# -- Install static ffmpeg binary --
 install_ffmpeg() {
     # Skip if ffmpeg already installed and working
     if [ -x "$FFMPEG_DIR/ffmpeg" ] && "$FFMPEG_DIR/ffmpeg" -version &>/dev/null; then
@@ -277,7 +268,6 @@ install_ffmpeg() {
     fi
 }
 
-# -- Install transcription-tools package --
 install_transcription_tools() {
     ohai "Installing transcription-tools..."
     "$VENV_DIR/bin/pip" install \
@@ -287,7 +277,6 @@ install_transcription_tools() {
     success "transcription-tools $TT_VERSION installed"
 }
 
-# -- Create wrapper scripts in /usr/local/bin --
 install_wrapper_scripts() {
     ohai "Installing commands to /usr/local/bin..."
 
@@ -325,7 +314,6 @@ WRAPPER
     success "Commands installed"
 }
 
-# -- Install Finder Quick Actions --
 install_workflows() {
     ohai "Installing Finder Quick Actions..."
 
@@ -364,7 +352,6 @@ install_workflows() {
     success "Finder Quick Actions installed"
 }
 
-# -- UI: Banner, confirmation, success message --
 print_banner() {
     echo ""
     echo "  ${BOLD}Transcription Tools Installer${RESET}"
@@ -427,7 +414,6 @@ print_success() {
     open "x-apple.systempreferences:com.apple.ExtensionsPreferences" 2>/dev/null || true
 }
 
-# -- Main entry point --
 main() {
     print_banner
     detect_architecture
