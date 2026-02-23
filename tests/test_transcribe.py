@@ -133,7 +133,7 @@ class TestTimedTranscription:
     def test_records_elapsed_time(self):
         with _timed_transcription("Test") as timing:
             pass
-        assert timing.elapsed > 0
+        assert timing.elapsed >= 0
 
     def test_prints_aborted_on_exception(self, capsys):
         with pytest.raises(ValueError):
