@@ -1,8 +1,4 @@
-"""Whisper transcription with dual-backend dispatch.
-
-Supports both faster-whisper (CTranslate2) and OpenAI whisper backends.
-The tier config determines which backend and parameters to use.
-"""
+"""Whisper transcription with dual-backend dispatch."""
 
 from __future__ import annotations
 
@@ -15,9 +11,6 @@ from dataclasses import dataclass
 
 from transcription_tools.config import FasterWhisperParams, TranscriptionTier
 
-# -- Timing helpers ------------------------------------------------------
-
-
 @dataclass
 class _TimingResult:
     """Elapsed time recorded by _timed_transcription."""
@@ -27,11 +20,7 @@ class _TimingResult:
 
 @contextmanager
 def _timed_transcription(tier_label: str):
-    """Print transcription start/end and measure elapsed time.
-
-    Yields a _TimingResult whose ``elapsed`` field is populated on exit.
-    Callers can read it after the ``with`` block for backend-specific logging.
-    """
+    """Print transcription start/end and measure elapsed time."""
     result = _TimingResult()
     print(f"Transcribing in {tier_label} mode...")
     start = time.time()
@@ -64,9 +53,6 @@ def _graceful_exit_handler():
         signal.signal(signal.SIGTERM, original_sigterm)
 
 
-# -- Device detection ----------------------------------------------------
-
-
 def _detect_ctranslate2_device() -> str:
     """Return 'cuda' if ctranslate2 supports it, otherwise 'cpu'.
 
@@ -94,9 +80,6 @@ def _detect_torch_device() -> str:
     except ImportError:
         pass
     return "cpu"
-
-
-# -- Backend implementations ---------------------------------------------
 
 
 def transcribe_faster_whisper(audio_path: str, tier: TranscriptionTier, device: str) -> str:
@@ -178,9 +161,6 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
             text = (result.get("text") or "").strip()
 
         return text
-
-
-# -- Public API ----------------------------------------------------------
 
 
 def transcribe(audio_path: str, tier: TranscriptionTier) -> str:
