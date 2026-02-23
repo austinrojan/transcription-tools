@@ -24,4 +24,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
-      - run: pytest tests/ -v
+      - run: pytest tests/ -v --cov --cov-report=term-missing
