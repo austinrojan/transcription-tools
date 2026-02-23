@@ -1,115 +1,145 @@
 # Transcription Tools
 
-macOS audio and video transcription with right-click Finder integration.
-Uses Whisper for local speech-to-text and OpenAI for transcript cleanup.
+Local audio and video transcription for macOS, using Whisper for speech-to-text and (optionally) OpenAI for transcript cleanup.
 
-## How It Works
+## What It Does
 
-```
-media file → ffmpeg (16kHz mono WAV) → Whisper → raw transcript → OpenAI cleanup → clean transcript
-```
+Transcribes audio and video files to text. Works with common formats like MP3, MP4, MOV, WAV, and [many more](#supported-formats).
 
-Five speed/quality tiers:
+Produces two output files:
 
-| Tier | Backend | Model | Use Case |
-|------|---------|-------|----------|
-| Very Fast | faster-whisper | tiny.en | Quick notes, rough drafts |
-| Fast | faster-whisper | base | General transcription |
-| Medium | faster-whisper | medium | Balanced quality/speed |
-| Slow | OpenAI whisper | medium | High-quality transcripts |
-| Very Slow | OpenAI whisper | large-v3 | Maximum accuracy |
+- **Raw transcript** — direct Whisper output
+- **Cleaned transcript** — spelling, grammar, and formatting corrected by AI (optional, requires an [OpenAI API key](#optional-ai-powered-cleanup))
 
-All tiers accept both audio and video files. Video files have their audio track extracted automatically during the ffmpeg conversion step.
+## Speed / Quality Tiers
 
-After transcription, an OpenAI chat model (gpt-5-nano by default) cleans up spelling, grammar, and formatting. Skip with `--no-cleanup`.
+| Tier | Quality | Best For |
+|------|---------|----------|
+| Very Fast | Rough | Quick notes, scanning content |
+| Fast | Good | General transcription |
+| Medium | Better | Meetings, interviews |
+| Slow | High | Polished transcripts |
+| Very Slow | Highest | Technical or specialized content |
+
+Higher tiers are slower but more accurate. Speed depends on file length and your hardware.
+
+## Requirements
+
+- macOS 12 (Monterey) or later
+- 3 GB free disk space
+- Internet connection (for installation only — transcription runs offline)
+- Apple Silicon recommended (Intel Macs supported; see [Apple Silicon vs Intel](#apple-silicon-vs-intel))
 
 ## Install
 
-Requires macOS, Python 3.10+, and ffmpeg (`brew install ffmpeg`).
+Run this in Terminal:
 
 ```bash
-git clone <repo-url> && cd transcription-tools-package
-python3 -m venv ~/.local/share/transcription-tools/venv
-~/.local/share/transcription-tools/venv/bin/pip install -e .
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/austinrojan/transcription-tools/main/install.sh)"
 ```
 
-Then symlink the commands:
+The installer sets up its own Python, ffmpeg, and Whisper — it does not touch your system Python or any existing Homebrew installation.
 
-```bash
-for tier in veryfast fast medium slow veryslow; do
-  sudo ln -sf ~/.local/share/transcription-tools/venv/bin/transcribe-$tier /usr/local/bin/transcribe-$tier
-done
-```
+Everything is installed to `~/Library/Application Support/transcription-tools/`.
 
-Set your OpenAI API key for the cleanup step:
-
-```bash
-echo 'export OPENAI_API_KEY="sk-..."' >> ~/.zshrc
-```
+You'll be prompted for your password once so the installer can place commands in `/usr/local/bin`. If Xcode Command Line Tools aren't already installed, you'll be prompted to install them first.
 
 ## Usage
 
-### Right-click (Finder)
+### Right-Click (Finder)
 
-1. Copy the workflows to your Services folder:
+After installation, right-click any audio or video file in Finder → **Quick Actions** → choose a tier (e.g. "Transcribe Audio - Fast").
 
-```bash
-cp -R workflows/*.workflow ~/Library/Services/
-```
+If Quick Actions don't appear, go to **System Settings → General → Login Items & Extensions → Extensions → Finder** and toggle on each "Transcribe Audio" tier.
 
-2. Rebuild the services menu so macOS discovers them:
-
-```bash
-/System/Library/CoreServices/pbs -flush
-```
-
-3. Enable the workflows in **System Settings → General → Login Items & Extensions → Extensions → Finder** — toggle on each "Transcribe Audio" workflow. The workflows accept both audio and video files.
-
-Now right-click any audio or video file → **Quick Actions** → choose a tier.
-
-### Command line
+### Command Line
 
 ```bash
 transcribe-fast recording.mp3
-transcribe-medium recording.mp3 --no-cleanup
-transcribe-slow recording.mp3 --openai-model gpt-5-mini
-transcribe-veryslow recording.mp3 --cleanup-only
+transcribe-medium lecture.mp4
+transcribe-slow interview.wav
 ```
 
-Video files work the same way — audio is extracted automatically:
+Output files are saved next to the original:
+
+- `recording_fast.txt` — raw transcript
+- `recording_fast.clean.txt` — cleaned transcript (if an API key is set)
+
+Use `--no-cleanup` to skip the AI cleanup step:
 
 ```bash
-transcribe-fast lecture.mp4
-transcribe-medium interview.mov --no-cleanup
-transcribe-slow screencast.mkv --openai-model gpt-5-mini
+transcribe-fast recording.mp3 --no-cleanup
 ```
 
-Output files are written next to the source media:
-- `recording_fast.txt` — raw Whisper output
-- `recording_fast.clean.txt` — cleaned by OpenAI
+## Optional: AI-Powered Cleanup
+
+After transcription, an AI model can fix spelling, grammar, punctuation, and formatting. This step is optional and requires an OpenAI API key.
+
+To enable it:
+
+```bash
+transcription-tools config --set-api-key
+```
+
+You'll need an API key from [platform.openai.com](https://platform.openai.com). The default cleanup model is gpt-5-nano. You can choose a different model:
+
+```bash
+transcribe-fast recording.mp3 --openai-model gpt-5-mini
+transcribe-fast recording.mp3 --openai-model gpt-5
+```
+
+Without an API key, transcription still works — you just get the raw transcript.
 
 ## Flags
 
-| Flag | Description |
+| Flag | What it does |
 |------|-------------|
-| `--no-cleanup` | Skip the OpenAI cleanup pass |
+| `--no-cleanup` | Skip the AI cleanup step |
 | `--cleanup-only` | Re-run cleanup on an existing transcript |
-| `--openai-model` | Choose cleanup model (gpt-5-nano, gpt-5-mini, gpt-5) |
-| `--openai-base-url` | Custom OpenAI-compatible endpoint |
+| `--openai-model MODEL` | Choose cleanup model (`gpt-5-nano`, `gpt-5-mini`, `gpt-5`) |
+| `--openai-base-url URL` | Use a custom OpenAI-compatible API |
 
 ## Supported Formats
 
-Any format ffmpeg can read is supported. Common examples:
+Anything ffmpeg can read is supported. Common examples:
 
-**Audio:** MP3, WAV, FLAC, AAC, OGG, M4A, WMA, OPUS, AIFF
-**Video:** MP4, MOV, MKV, AVI, WebM, WMV, FLV, MPEG, M4V, TS, 3GP
+**Audio:** MP3, WAV, FLAC, AAC, OGG, M4A, AIFF, OPUS, WMA
 
-Video files must contain at least one audio stream. Files with multiple audio tracks use the first track by default.
+**Video:** MP4, MOV, MKV, AVI, WebM, WMV, FLV, M4V
+
+Video files have their audio track extracted automatically.
+
+## Managing Your Installation
+
+```bash
+transcription-tools config --show       # View current settings
+transcription-tools config --set-api-key # Set OpenAI API key
+transcription-tools version             # Check installed version
+transcription-tools update              # Check for updates
+transcription-tools uninstall           # Remove everything
+```
+
+## Uninstall
+
+```bash
+transcription-tools uninstall
+```
+
+This removes all installed files. You'll be asked whether to also remove your configuration (API key) and downloaded Whisper models.
+
+## Apple Silicon vs Intel
+
+- **Apple Silicon (M1/M2/M3/M4):** All 5 tiers installed.
+- **Intel:** All 5 tiers installed. Slow and Very Slow depend on PyTorch — the installer will warn you if PyTorch fails to install on your system.
 
 ## Development
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests/ -v
+git clone https://github.com/austinrojan/transcription-tools.git
+cd transcription-tools
+python3 -m venv venv && source venv/bin/activate
+pip install -e .
+python3 -m pytest tests/ -v
 ```
 
 ## License

@@ -291,10 +291,7 @@ install_transcription_tools() {
 install_wrapper_scripts() {
     ohai "Installing commands to /usr/local/bin..."
 
-    local commands=(transcribe-veryfast transcribe-fast transcribe-medium transcription-tools)
-    if [ "$IS_APPLE_SILICON" = true ]; then
-        commands+=(transcribe-slow transcribe-veryslow)
-    fi
+    local commands=(transcribe-veryfast transcribe-fast transcribe-medium transcribe-slow transcribe-veryslow transcription-tools)
 
     local needs_sudo=false
     if [ ! -w "/usr/local/bin" ]; then
@@ -355,10 +352,7 @@ install_workflows() {
         return
     fi
 
-    local workflows=("Very Fast" "Fast" "Medium")
-    if [ "$IS_APPLE_SILICON" = true ]; then
-        workflows+=("Slow" "Very Slow")
-    fi
+    local workflows=("Very Fast" "Fast" "Medium" "Slow" "Very Slow")
 
     for tier in "${workflows[@]}"; do
         rm -rf "$SERVICES_DIR/Transcribe Audio - ${tier}.workflow"
@@ -399,11 +393,6 @@ confirm_installation() {
         echo "  Architecture:   Intel (x86_64)"
     fi
     echo "  macOS version:  $(sw_vers -productVersion)"
-
-    if [ "$IS_APPLE_SILICON" = false ]; then
-        echo ""
-        echo "  ${YELLOW}Note: Slow and Very Slow tiers require Apple Silicon.${RESET}"
-    fi
 
     echo ""
     if [ "$IS_UPGRADE" = true ]; then
