@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from transcription_tools.config import FasterWhisperParams, TranscriptionTier
 
+
 @dataclass
 class _TimingResult:
     """Elapsed time recorded by _timed_transcription."""
@@ -62,6 +63,7 @@ def _detect_ctranslate2_device() -> str:
     """
     try:
         import ctranslate2
+
         if ctranslate2.get_supported_compute_types("cuda"):
             return "cuda"
     except (ImportError, RuntimeError, ValueError):
@@ -73,6 +75,7 @@ def _detect_torch_device() -> str:
     """Return the best torch-compatible device: 'cuda', 'mps', or 'cpu'."""
     try:
         import torch
+
         if torch.cuda.is_available():
             return "cuda"
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -124,6 +127,7 @@ def transcribe_faster_whisper(audio_path: str, tier: TranscriptionTier, device: 
 def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: str) -> str:
     """Transcribe using the OpenAI whisper backend."""
     from contextlib import nullcontext
+
     import whisper
 
     params = tier.backend_params  # OpenAIWhisperParams
@@ -139,7 +143,7 @@ def transcribe_openai_whisper(audio_path: str, tier: TranscriptionTier, device: 
             download_root=os.path.expanduser("~/.cache/whisper"),
         )
 
-        with _timed_transcription(tier.label) as timing:
+        with _timed_transcription(tier.label):
             result = model.transcribe(
                 audio_path,
                 task="transcribe",

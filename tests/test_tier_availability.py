@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from transcription_tools.config import get_available_tiers, TIERS
+from transcription_tools.config import TIERS, get_available_tiers
 
 
 def _mock_importable(*available_modules: str):
     """Return a patch that makes _is_importable return True only for listed modules."""
+
     def _is_importable(name: str) -> bool:
         return name in available_modules
+
     return patch("transcription_tools.config._is_importable", side_effect=_is_importable)
 
 
 class TestGetAvailableTiers:
-
     def test_all_tiers_when_all_backends_importable(self):
         with _mock_importable("faster_whisper", "torch"):
             available = get_available_tiers()

@@ -14,7 +14,6 @@ from transcription_tools.install_paths import (
 
 
 class TestInstallPaths:
-
     def test_install_dir_is_in_application_support(self):
         assert "Library/Application Support/transcription-tools" in str(INSTALL_DIR)
 

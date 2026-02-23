@@ -10,6 +10,7 @@ from types import MappingProxyType
 @dataclass(frozen=True)
 class FasterWhisperParams:
     """Parameters specific to the faster-whisper (CTranslate2) backend."""
+
     language: str | None = None
     vad_filter: bool = False
     vad_params: MappingProxyType[str, int | float] | None = None
@@ -21,6 +22,7 @@ class FasterWhisperParams:
 @dataclass(frozen=True)
 class OpenAIWhisperParams:
     """Parameters specific to the OpenAI whisper backend."""
+
     initial_prompt: str | None = None
     verbose: bool = False
     fp16_on_gpu: bool = True
@@ -34,6 +36,7 @@ class TranscriptionTier:
     Shared parameters live here directly. Backend-specific parameters
     live in backend_params — use isinstance() to determine which backend.
     """
+
     name: str  # Matches the TIERS dict key; duplicated for standalone use (e.g. output filenames)
     label: str
     whisper_model: str
@@ -61,12 +64,14 @@ TIERS: dict[str, TranscriptionTier] = {
         whisper_model="base",
         backend_params=FasterWhisperParams(
             vad_filter=True,
-            vad_params=MappingProxyType({
-                "min_speech_duration_ms": 250,
-                "max_speech_duration_s": float("inf"),
-                "min_silence_duration_ms": 1000,
-                "speech_pad_ms": 200,
-            }),
+            vad_params=MappingProxyType(
+                {
+                    "min_speech_duration_ms": 250,
+                    "max_speech_duration_s": float("inf"),
+                    "min_silence_duration_ms": 1000,
+                    "speech_pad_ms": 200,
+                }
+            ),
             without_timestamps=False,
         ),
         beam_size=3,
@@ -79,12 +84,14 @@ TIERS: dict[str, TranscriptionTier] = {
         whisper_model="medium",
         backend_params=FasterWhisperParams(
             vad_filter=True,
-            vad_params=MappingProxyType({
-                "min_speech_duration_ms": 250,
-                "max_speech_duration_s": float("inf"),
-                "min_silence_duration_ms": 500,
-                "speech_pad_ms": 400,
-            }),
+            vad_params=MappingProxyType(
+                {
+                    "min_speech_duration_ms": 250,
+                    "max_speech_duration_s": float("inf"),
+                    "min_silence_duration_ms": 500,
+                    "speech_pad_ms": 400,
+                }
+            ),
             without_timestamps=False,
             compute_type_gpu="float16",
         ),

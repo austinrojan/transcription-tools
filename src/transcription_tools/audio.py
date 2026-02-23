@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import shutil
 import subprocess
@@ -36,16 +37,43 @@ ENHANCED_FILTER_CHAIN = (
     f"volume={VOLUME_BOOST}"
 )
 
-AUDIO_EXTENSIONS = frozenset({
-    ".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a",
-    ".opus", ".aiff", ".ape", ".wv", ".oga",
-})
+AUDIO_EXTENSIONS = frozenset(
+    {
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".aac",
+        ".ogg",
+        ".wma",
+        ".m4a",
+        ".opus",
+        ".aiff",
+        ".ape",
+        ".wv",
+        ".oga",
+    }
+)
 
-VIDEO_EXTENSIONS = frozenset({
-    ".mp4", ".mov", ".mkv", ".avi", ".webm", ".wmv", ".flv",
-    ".mpeg", ".mpg", ".m4v", ".ts", ".3gp", ".ogv", ".vob",
-    ".mts", ".m2ts",
-})
+VIDEO_EXTENSIONS = frozenset(
+    {
+        ".mp4",
+        ".mov",
+        ".mkv",
+        ".avi",
+        ".webm",
+        ".wmv",
+        ".flv",
+        ".mpeg",
+        ".mpg",
+        ".m4v",
+        ".ts",
+        ".3gp",
+        ".ogv",
+        ".vob",
+        ".mts",
+        ".m2ts",
+    }
+)
 
 SUPPORTED_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
 
@@ -72,9 +100,7 @@ def _find_binary(name: str, candidates: list[str]) -> str:
     for candidate in candidates:
         if Path(candidate).is_file():
             return candidate
-    raise FileNotFoundError(
-        f"{name} not found. Install it with: brew install ffmpeg"
-    )
+    raise FileNotFoundError(f"{name} not found. Install it with: brew install ffmpeg")
 
 
 def find_ffmpeg() -> str:
@@ -102,10 +128,13 @@ def probe_audio_streams(file_path: str) -> list[dict]:
         result = subprocess.run(
             [
                 ffprobe,
-                "-v", "quiet",
-                "-print_format", "json",
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
                 "-show_streams",
-                "-select_streams", "a",
+                "-select_streams",
+                "a",
                 str(safe_input),
             ],
             capture_output=True,
@@ -117,16 +146,12 @@ def probe_audio_streams(file_path: str) -> list[dict]:
 
     if result.returncode != 0:
         detail = (result.stderr or "")[-500:]
-        raise RuntimeError(
-            f"ffprobe failed to read '{file_path}': {detail}"
-        )
+        raise RuntimeError(f"ffprobe failed to read '{file_path}': {detail}")
 
     try:
         data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        raise RuntimeError(
-            f"ffprobe returned invalid JSON for '{file_path}'"
-        )
+    except json.JSONDecodeError as err:
+        raise RuntimeError(f"ffprobe returned invalid JSON for '{file_path}'") from err
     return data.get("streams", [])
 
 
@@ -134,10 +159,7 @@ def validate_has_audio(file_path: str) -> None:
     """Raise ValueError if the file contains no audio streams."""
     streams = probe_audio_streams(file_path)
     if not streams:
-        raise ValueError(
-            f"No audio stream found in '{file_path}'. "
-            "The file may be a silent video or a non-media file."
-        )
+        raise ValueError(f"No audio stream found in '{file_path}'. The file may be a silent video or a non-media file.")
 
 
 def _copy_input_to_temp(input_path: str) -> Path:
@@ -157,10 +179,8 @@ def _copy_input_to_temp(input_path: str) -> Path:
 def _cleanup_temp_input(temp_path: Path) -> None:
     """Remove the temporary input copy and its parent directory."""
     temp_path.unlink(missing_ok=True)
-    try:
+    with contextlib.suppress(OSError):
         temp_path.parent.rmdir()
-    except OSError:
-        pass
 
 
 def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
@@ -176,7 +196,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
     """
     validate_has_audio(input_path)
     ffmpeg = find_ffmpeg()
-    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)  # noqa: SIM115
     tmp.close()
     tmp_path = tmp.name
 
@@ -192,9 +212,7 @@ def convert_to_wav(input_path: str, enhanced: bool = False) -> Path:
 
         cmd += ["-ar", str(SAMPLE_RATE_HZ), "-ac", "1", "-f", "wav", tmp_path]
 
-        subprocess.run(
-            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
-        )
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         result_path = Path(tmp_path)
     except subprocess.CalledProcessError as e:
         detail = e.stderr.decode(errors="replace")[-1000:] if e.stderr else ""

@@ -35,12 +35,12 @@ def build_shell_command(command_name: str) -> str:
         "        osascript -e 'display dialog \"Transcription Tools is not installed.\\n\\n"
         'Visit https://github.com/austinrojan/transcription-tools for installation instructions."'
         ' buttons {"OK"} default button "OK" with icon caution'
-        " with title \"Transcription Tools\"'\n"
+        ' with title "Transcription Tools"\'\n'
         "        exit 1\n"
         "    fi\n"
         f'    {command_name} "$f" 2>&1 | tee -a "$HOME/Library/Logs/transcription-tools.log"\n'
         "    STATUS=${PIPESTATUS[0]}\n"
-        "    BASENAME=$(basename \"$f\" | tr -d '\"')\n"
+        '    BASENAME=$(basename "$f" | tr -d \'"\')\n'
         "    if [ $STATUS -eq 0 ]; then\n"
         '        osascript -e "display notification \\"Transcription complete: $BASENAME\\"'
         ' with title \\"Transcription Tools\\""\n'

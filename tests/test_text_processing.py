@@ -103,9 +103,7 @@ class TestSplitAtWordBoundaries:
 
 class TestSanitizeModelOutput:
     def test_strips_cleaned_up_prefix(self):
-        result = sanitize_model_output(
-            "Here is the cleaned-up transcript: Hello world"
-        )
+        result = sanitize_model_output("Here is the cleaned-up transcript: Hello world")
         assert result == "Hello world"
 
     def test_strips_cleaned_transcript_prefix(self):
@@ -119,7 +117,5 @@ class TestSanitizeModelOutput:
         assert sanitize_model_output("  Hello world  ") == "Hello world"
 
     def test_case_insensitive(self):
-        result = sanitize_model_output(
-            "HERE IS THE CLEANED UP TRANSCRIPT: Hello"
-        )
+        result = sanitize_model_output("HERE IS THE CLEANED UP TRANSCRIPT: Hello")
         assert result == "Hello"

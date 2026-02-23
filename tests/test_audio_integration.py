@@ -24,11 +24,20 @@ def tiny_audio(tmp_path_factory):
     path = tmp_path_factory.mktemp("media") / "test_audio.wav"
     subprocess.run(
         [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono",
-            "-t", "0.1", "-f", "wav", str(path),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=8000:cl=mono",
+            "-t",
+            "0.1",
+            "-f",
+            "wav",
+            str(path),
         ],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return path
 
@@ -39,15 +48,31 @@ def tiny_video_with_audio(tmp_path_factory):
     path = tmp_path_factory.mktemp("media") / "test_video.mp4"
     subprocess.run(
         [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=2x2:d=0.1:r=1",
-            "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono",
-            "-t", "0.1",
-            "-c:v", "libx264", "-preset", "ultrafast",
-            "-c:a", "aac", "-b:a", "32k",
-            "-shortest", str(path),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=2x2:d=0.1:r=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=8000:cl=mono",
+            "-t",
+            "0.1",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "32k",
+            "-shortest",
+            str(path),
         ],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return path
 
@@ -58,20 +83,29 @@ def tiny_video_no_audio(tmp_path_factory):
     path = tmp_path_factory.mktemp("media") / "silent_video.mp4"
     subprocess.run(
         [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=2x2:d=0.1:r=1",
-            "-t", "0.1",
-            "-c:v", "libx264", "-preset", "ultrafast",
-            "-an", str(path),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=2x2:d=0.1:r=1",
+            "-t",
+            "0.1",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-an",
+            str(path),
         ],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return path
 
 
 @requires_ffmpeg
 class TestProbeAudioStreamsIntegration:
-
     def test_detects_audio_in_wav(self, tiny_audio):
         streams = probe_audio_streams(str(tiny_audio))
         assert len(streams) >= 1
@@ -87,7 +121,6 @@ class TestProbeAudioStreamsIntegration:
 
 @requires_ffmpeg
 class TestConvertToWavIntegration:
-
     def test_converts_audio_file(self, tiny_audio):
         wav = convert_to_wav(str(tiny_audio))
         try:

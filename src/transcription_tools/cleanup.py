@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import time
 
@@ -10,12 +9,12 @@ import openai
 from openai import OpenAI
 
 from transcription_tools.config import DEFAULT_CLEANUP_MODEL
-from transcription_tools.user_config import get_config_value
 from transcription_tools.text_processing import (
     sanitize_model_output,
     split_at_word_boundaries,
     split_into_chunks,
 )
+from transcription_tools.user_config import get_config_value
 
 MAX_CHUNK_CHARS = 2500
 MIN_SUBDIVIDE_CHARS = 1000
@@ -31,13 +30,17 @@ WORD_COUNT_TOLERANCE_HIGH = 1.2
 COMMENTARY_CHECK_PREFIX_CHARS = 200
 
 TERM_CORRECTIONS = [
-    ("sub splash", "Subsplash"), ("sub-splash", "Subsplash"),
+    ("sub splash", "Subsplash"),
+    ("sub-splash", "Subsplash"),
     ("subsplash", "Subsplash"),
-    ("cyber duck", "CyberDuck"), ("cyberduck", "CyberDuck"),
+    ("cyber duck", "CyberDuck"),
+    ("cyberduck", "CyberDuck"),
     ("4k downloader", "4K Downloader"),
     ("fd tp", "FTP"),
-    (" gonna ", " going to "), (" wanna ", " want to "),
-    (" gotta ", " got to "), (" kinda ", " kind of "),
+    (" gonna ", " going to "),
+    (" wanna ", " want to "),
+    (" gotta ", " got to "),
+    (" kinda ", " kind of "),
 ]
 
 
@@ -63,8 +66,12 @@ def _compile_corrections(
 _COMPILED_CORRECTIONS = _compile_corrections(TERM_CORRECTIONS)
 
 META_PHRASES = [
-    "here is", "here's the", "cleaned transcript",
-    "the transcript", "the speaker", "this chunk",
+    "here is",
+    "here's the",
+    "cleaned transcript",
+    "the transcript",
+    "the speaker",
+    "this chunk",
 ]
 
 
@@ -90,9 +97,7 @@ def response_is_valid(response: str, original_word_count: int) -> bool:
 def build_cleanup_prompt(chunk_text: str, chunk_idx: int, total: int) -> str:
     """Build the prompt for a cleanup API call."""
     word_count = len(chunk_text.split())
-    correction_lines = "\n".join(
-        f"- '{old.strip()}' -> '{new}'" for old, new in TERM_CORRECTIONS
-    )
+    correction_lines = "\n".join(f"- '{old.strip()}' -> '{new}'" for old, new in TERM_CORRECTIONS)
     return (
         f"CRITICAL WORD COUNT REQUIREMENT\n"
         f"Input: {word_count} words\n"
@@ -127,8 +132,7 @@ class TranscriptCleaner:
         api_key = get_config_value("openai_api_key", env_var="OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError(
-                "No OpenAI API key configured. "
-                "Run 'transcription-tools config --set-api-key' to set one."
+                "No OpenAI API key configured. Run 'transcription-tools config --set-api-key' to set one."
             )
 
         self._model = model
@@ -159,7 +163,7 @@ class TranscriptCleaner:
             self._consecutive_rate_limits += 1
             self._rate_limit_wait_seconds = min(
                 MAX_RATE_LIMIT_WAIT_SECONDS,
-                retry_after * (2 ** self._consecutive_rate_limits),
+                retry_after * (2**self._consecutive_rate_limits),
             )
             print(f"[cleanup] chunk {chunk_idx}: rate limited, waiting {self._rate_limit_wait_seconds}s")
             return
@@ -167,7 +171,11 @@ class TranscriptCleaner:
         print(f"[cleanup] chunk {chunk_idx} error: {str(exc)[:100]}")
 
     def _process_chunk(
-        self, chunk_text: str, chunk_idx: int, total: int, attempt: int = 1,
+        self,
+        chunk_text: str,
+        chunk_idx: int,
+        total: int,
+        attempt: int = 1,
     ) -> str | None:
         """Process a single chunk through OpenAI. Returns cleaned text or None."""
         original_word_count = len(chunk_text.split())
@@ -179,8 +187,7 @@ class TranscriptCleaner:
             time.sleep(INTER_REQUEST_DELAY_SECONDS * (2 ** (attempt - 1)))
 
         print(
-            f"[cleanup] chunk {chunk_idx}/{total}: processing "
-            f"(attempt {attempt}, {len(chunk_text)} chars)...",
+            f"[cleanup] chunk {chunk_idx}/{total}: processing (attempt {attempt}, {len(chunk_text)} chars)...",
             flush=True,
         )
 

@@ -1,11 +1,9 @@
 """Tests for transcript cleanup module."""
 
 from transcription_tools.cleanup import (
-    MIN_ACCEPTABLE_WORD_RATIO,
     TERM_CORRECTIONS,
     WORD_COUNT_TOLERANCE_HIGH,
     WORD_COUNT_TOLERANCE_LOW,
-    TranscriptCleaner,
     apply_basic_cleanup,
     build_cleanup_prompt,
     response_is_valid,
@@ -86,7 +84,7 @@ class TestBuildCleanupPrompt:
 
     def test_term_corrections_listed(self):
         prompt = build_cleanup_prompt("some text", 1, 1)
-        for old, new in TERM_CORRECTIONS:
+        for _old, new in TERM_CORRECTIONS:
             assert new in prompt
 
     def test_chunk_text_embedded(self):

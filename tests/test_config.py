@@ -6,9 +6,9 @@ from transcription_tools.config import (
     ALLOWED_CLEANUP_MODELS,
     DEFAULT_CLEANUP_MODEL,
     TIERS,
-    TranscriptionTier,
     FasterWhisperParams,
     OpenAIWhisperParams,
+    TranscriptionTier,
 )
 
 EXPECTED_TIERS = ["veryfast", "fast", "medium", "slow", "veryslow"]
@@ -71,13 +71,16 @@ class TestTiersExist:
 
 
 class TestTierModels:
-    @pytest.mark.parametrize("name,expected_model", [
-        ("veryfast", "tiny.en"),
-        ("fast", "base"),
-        ("medium", "medium"),
-        ("slow", "medium"),
-        ("veryslow", "large-v3"),
-    ])
+    @pytest.mark.parametrize(
+        "name,expected_model",
+        [
+            ("veryfast", "tiny.en"),
+            ("fast", "base"),
+            ("medium", "medium"),
+            ("slow", "medium"),
+            ("veryslow", "large-v3"),
+        ],
+    )
     def test_tier_model(self, name, expected_model):
         assert TIERS[name].whisper_model == expected_model
 

@@ -66,7 +66,9 @@ def check_for_update() -> tuple[bool, str, str]:
 
 
 def get_uninstall_paths(
-    *, keep_config: bool, keep_models: bool,
+    *,
+    keep_config: bool,
+    keep_models: bool,
 ) -> dict[str, list]:
     """Build lists of directories and files to remove during uninstall."""
     from pathlib import Path
@@ -75,6 +77,7 @@ def get_uninstall_paths(
     files: list[Path] = [Path(f"/usr/local/bin/{cmd}") for cmd in WRAPPER_COMMANDS]
 
     from transcription_tools.config import TIERS
+
     for tier in TIERS.values():
         dirs.append(SERVICES_DIR / f"Transcribe Audio - {tier.label}.workflow")
 
@@ -167,6 +170,7 @@ def _uninstall_command() -> None:
             f.unlink(missing_ok=True)
         except PermissionError:
             import subprocess
+
             subprocess.run(["sudo", "rm", "-f", str(f)], check=False)
     for d in paths["dirs"]:
         if d.exists():
@@ -174,6 +178,7 @@ def _uninstall_command() -> None:
                 shutil.rmtree(d)
             except PermissionError:
                 import subprocess
+
                 subprocess.run(["sudo", "rm", "-rf", str(d)], check=False)
 
     print("\nTranscription Tools has been removed.")
@@ -190,18 +195,25 @@ def main() -> None:
 
     config_parser = sub.add_parser("config", help="Manage configuration")
     config_parser.add_argument(
-        "--show", action="store_true", help="Show current config",
+        "--show",
+        action="store_true",
+        help="Show current config",
     )
     config_parser.add_argument(
-        "--set-api-key", action="store_true",
+        "--set-api-key",
+        action="store_true",
         help="Set OpenAI API key interactively",
     )
     config_parser.add_argument(
-        "--set", nargs=2, metavar=("KEY", "VALUE"),
+        "--set",
+        nargs=2,
+        metavar=("KEY", "VALUE"),
         help="Set a config value",
     )
     config_parser.add_argument(
-        "--unset", metavar="KEY", help="Remove a config value",
+        "--unset",
+        metavar="KEY",
+        help="Remove a config value",
     )
 
     sub.add_parser("version", help="Show version")
@@ -232,8 +244,7 @@ def main() -> None:
             print(f"Update available: v{current} -> v{latest}")
             print("To update, re-run the install script:")
             print(
-                "  curl -fsSL https://raw.githubusercontent.com/"
-                "austinrojan/transcription-tools/main/install.sh | bash"
+                "  curl -fsSL https://raw.githubusercontent.com/austinrojan/transcription-tools/main/install.sh | bash"
             )
         sys.exit(0)
 

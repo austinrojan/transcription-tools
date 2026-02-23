@@ -69,11 +69,14 @@ class TestDetectCtranslate2Device:
 class TestDetectTorchDevice:
     """Test the torch device detection function."""
 
-    @pytest.mark.parametrize("cuda,mps,expected", [
-        pytest.param(True, False, "cuda", id="cuda-available"),
-        pytest.param(False, True, "mps", id="mps-available"),
-        pytest.param(False, False, "cpu", id="cpu-fallback"),
-    ])
+    @pytest.mark.parametrize(
+        "cuda,mps,expected",
+        [
+            pytest.param(True, False, "cuda", id="cuda-available"),
+            pytest.param(False, True, "mps", id="mps-available"),
+            pytest.param(False, False, "cpu", id="cpu-fallback"),
+        ],
+    )
     def test_returns_best_device(self, cuda, mps, expected):
         mock_torch = MagicMock()
         mock_torch.cuda.is_available.return_value = cuda
@@ -126,9 +129,8 @@ class TestTimedTranscription:
         assert timing.elapsed >= 0
 
     def test_prints_aborted_on_exception(self, capsys):
-        with pytest.raises(ValueError):
-            with _timed_transcription("Test"):
-                raise ValueError("boom")
+        with pytest.raises(ValueError), _timed_transcription("Test"):
+            raise ValueError("boom")
         output = capsys.readouterr().out
         assert "Transcription aborted in" in output
 

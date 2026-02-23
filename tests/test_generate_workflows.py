@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
-
 import plistlib
 
-from scripts.generate_workflows import build_shell_command, WORKFLOW_TIERS, _patch_info_plist
+import pytest
+
+from scripts.generate_workflows import WORKFLOW_TIERS, _patch_info_plist, build_shell_command
 
 
 class TestBuildShellCommand:
-
     @pytest.fixture(autouse=True)
     def _fast_cmd(self):
         self.cmd = build_shell_command("transcribe-fast")
@@ -46,7 +45,6 @@ class TestBuildShellCommand:
 
 
 class TestPatchInfoPlist:
-
     def test_creates_nsmenuitem_when_missing(self, tmp_path):
         """Regression: .get('NSMenuItem', {}) returned a detached dict."""
         plist_dir = tmp_path / "Test.workflow" / "Contents"
@@ -64,7 +62,6 @@ class TestPatchInfoPlist:
 
 
 class TestWorkflowTiers:
-
     def test_all_five_tiers_defined(self):
         assert len(WORKFLOW_TIERS) == 5
 

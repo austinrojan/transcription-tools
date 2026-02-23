@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import patch
 
 import pytest
@@ -22,7 +21,6 @@ def _has_path_matching(paths: list, pattern: str) -> bool:
 
 
 class TestConfigShow:
-
     @patch("transcription_tools.meta_cli.load_config")
     def test_masks_api_key(self, mock_load, capsys):
         mock_load.return_value = {
@@ -44,7 +42,6 @@ class TestConfigShow:
 
 
 class TestConfigSetApiKey:
-
     @patch("transcription_tools.meta_cli.save_config")
     @patch("getpass.getpass", return_value="sk-proj-newkey123")
     def test_saves_valid_key(self, mock_input, mock_save, capsys):
@@ -59,28 +56,30 @@ class TestConfigSetApiKey:
 
 
 class TestConfigSet:
-
     @patch("transcription_tools.meta_cli.save_config")
     def test_sets_arbitrary_key(self, mock_save):
         config_command(
-            show=False, set_api_key=False,
-            set_pair=("openai_model", "gpt-5"), unset=None,
+            show=False,
+            set_api_key=False,
+            set_pair=("openai_model", "gpt-5"),
+            unset=None,
         )
         mock_save.assert_called_once_with({"openai_model": "gpt-5"})
 
 
 class TestConfigUnset:
-
     @patch("transcription_tools.meta_cli.delete_config_key")
     def test_removes_key(self, mock_delete):
         config_command(
-            show=False, set_api_key=False, set_pair=None, unset="openai_model",
+            show=False,
+            set_api_key=False,
+            set_pair=None,
+            unset="openai_model",
         )
         mock_delete.assert_called_once_with("openai_model")
 
 
 class TestParseVersion:
-
     def test_parses_simple_version(self):
         assert _parse_version("2.0.0") == (2, 0, 0)
 
@@ -95,7 +94,6 @@ class TestParseVersion:
 
 
 class TestCheckForUpdate:
-
     @patch("transcription_tools.meta_cli._get_installed_version", return_value="2.0.0")
     @patch("transcription_tools.meta_cli._get_latest_version", return_value="2.1.0")
     def test_detects_available_update(self, mock_latest, mock_installed):
@@ -119,7 +117,6 @@ class TestCheckForUpdate:
 
 
 class TestGetUninstallPaths:
-
     def test_includes_install_dir(self):
         paths = get_uninstall_paths(keep_config=True, keep_models=True)
         assert _has_path_matching(paths["dirs"], "Application Support/transcription-tools")
@@ -151,7 +148,6 @@ class TestGetUninstallPaths:
 
 
 class TestMainDispatch:
-
     @patch("sys.argv", ["transcription-tools", "version"])
     def test_version_prints_version(self, capsys):
         from transcription_tools import __version__

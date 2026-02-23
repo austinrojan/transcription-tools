@@ -10,14 +10,14 @@ from pathlib import Path
 # Must be set before torch/ctranslate2 are imported anywhere
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-from transcription_tools.audio import convert_to_wav, classify_media_file, SUPPORTED_EXTENSIONS
+from transcription_tools.audio import SUPPORTED_EXTENSIONS, classify_media_file, convert_to_wav
 from transcription_tools.cleanup import TranscriptCleaner
 from transcription_tools.config import (
     ALLOWED_CLEANUP_MODELS,
     DEFAULT_CLEANUP_MODEL,
+    TIERS,
     FasterWhisperParams,
     OpenAIWhisperParams,
-    TIERS,
     TranscriptionTier,
     get_available_tiers,
 )
@@ -32,23 +32,28 @@ def _parse_args(tier: TranscriptionTier) -> argparse.Namespace:
     parser.add_argument("input_file", help="Path to the input audio or video file.")
     cleanup_group = parser.add_mutually_exclusive_group()
     cleanup_group.add_argument(
-        "--no-cleanup", action="store_true",
+        "--no-cleanup",
+        action="store_true",
         help="Skip the OpenAI transcript cleanup pass.",
     )
     cleanup_group.add_argument(
-        "--cleanup", action="store_true",
+        "--cleanup",
+        action="store_true",
         help="Require cleanup (fail if no API key is configured).",
     )
     cleanup_group.add_argument(
-        "--cleanup-only", action="store_true",
+        "--cleanup-only",
+        action="store_true",
         help="Skip transcription; only run cleanup on an existing transcript.",
     )
     parser.add_argument(
-        "--openai-model", default=None,
+        "--openai-model",
+        default=None,
         help=f"OpenAI model for cleanup (allowed: {', '.join(sorted(ALLOWED_CLEANUP_MODELS))}).",
     )
     parser.add_argument(
-        "--openai-base-url", default=None,
+        "--openai-base-url",
+        default=None,
         help="Custom OpenAI-compatible base URL.",
     )
     return parser.parse_args()
@@ -116,8 +121,7 @@ def run(tier_name: str) -> None:
 
     if input_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
         print(
-            f"Warning: '{input_path.suffix}' is not a recognized audio or video format. "
-            "Attempting conversion anyway."
+            f"Warning: '{input_path.suffix}' is not a recognized audio or video format. Attempting conversion anyway."
         )
 
     output_path = input_path.with_name(f"{input_path.stem}_{tier.name}.txt")
@@ -141,10 +145,7 @@ def run(tier_name: str) -> None:
         _run_cleanup(raw_text, model, base_url, output_path)
     except RuntimeError as e:
         if "API key" in str(e) and not args.cleanup:
-            print(
-                f"\nNote: {e}\n"
-                "Skipping transcript cleanup. Raw transcript is still saved."
-            )
+            print(f"\nNote: {e}\nSkipping transcript cleanup. Raw transcript is still saved.")
         else:
             print(f"Cleanup step failed: {e}", file=sys.stderr)
             sys.exit(1)
@@ -156,14 +157,18 @@ def run(tier_name: str) -> None:
 def veryfast() -> None:
     run("veryfast")
 
+
 def fast() -> None:
     run("fast")
+
 
 def medium() -> None:
     run("medium")
 
+
 def slow() -> None:
     run("slow")
+
 
 def veryslow() -> None:
     run("veryslow")

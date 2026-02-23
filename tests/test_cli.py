@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 if "openai" not in sys.modules:
     sys.modules["openai"] = MagicMock()
 
-from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
 
@@ -51,6 +50,7 @@ class TestCleanupGracefulDegradation:
         mock_parse.return_value = _make_mock_args(str(input_file))
 
         from transcription_tools.config import TIERS
+
         mock_available.return_value = {"fast": TIERS["fast"]}
 
         mock_cleaner_cls.side_effect = RuntimeError("No OpenAI API key configured.")
@@ -63,15 +63,14 @@ class TestCleanupGracefulDegradation:
     @patch("transcription_tools.cli.get_available_tiers")
     @patch("transcription_tools.cli._run_transcription")
     @patch("transcription_tools.cli._parse_args")
-    def test_no_cleanup_flag_skips_cleanup(
-        self, mock_parse, mock_transcribe, mock_available, tmp_path
-    ):
+    def test_no_cleanup_flag_skips_cleanup(self, mock_parse, mock_transcribe, mock_available, tmp_path):
         input_file = tmp_path / "recording.mp3"
         input_file.touch()
 
         mock_parse.return_value = _make_mock_args(str(input_file), no_cleanup=True)
 
         from transcription_tools.config import TIERS
+
         mock_available.return_value = {"fast": TIERS["fast"]}
 
         run("fast")
@@ -95,6 +94,7 @@ class TestCleanupFlag:
         mock_parse.return_value = _make_mock_args(str(input_file), cleanup=True)
 
         from transcription_tools.config import TIERS
+
         mock_available.return_value = {"fast": TIERS["fast"]}
         mock_cleaner_cls.side_effect = RuntimeError("No OpenAI API key configured.")
 
@@ -103,7 +103,6 @@ class TestCleanupFlag:
 
 
 class TestTierAvailabilityCheck:
-
     @patch("transcription_tools.cli.get_available_tiers", return_value={})
     @patch("transcription_tools.cli._parse_args")
     def test_exits_when_tier_not_available(self, mock_parse, mock_available, capsys):
