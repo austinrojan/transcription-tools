@@ -20,8 +20,6 @@ from transcription_tools.transcribe import (
 )
 
 
-# -- Fixtures ----------------------------------------------------------------
-
 @pytest.fixture
 def faster_whisper_tier():
     return TranscriptionTier(
@@ -41,8 +39,6 @@ def openai_whisper_tier():
         backend_params=OpenAIWhisperParams(),
     )
 
-
-# -- Device detection: ctranslate2 -------------------------------------------
 
 class TestDetectCtranslate2Device:
     """Test the CTranslate2 CUDA detection function."""
@@ -70,8 +66,6 @@ class TestDetectCtranslate2Device:
             assert _detect_ctranslate2_device() == "cpu"
 
 
-# -- Device detection: torch -------------------------------------------------
-
 class TestDetectTorchDevice:
     """Test the torch device detection function."""
 
@@ -91,8 +85,6 @@ class TestDetectTorchDevice:
         with patch.dict(sys.modules, {"torch": None}):
             assert _detect_torch_device() == "cpu"
 
-
-# -- Dispatch routing --------------------------------------------------------
 
 class TestTranscribeDispatch:
     """Test that transcribe() routes to the correct backend."""
@@ -118,8 +110,6 @@ class TestTranscribeDispatch:
         mock_ct2.assert_called_once()
 
 
-# -- Timing context manager --------------------------------------------------
-
 class TestTimedTranscription:
     """Test the timing/logging context manager."""
 
@@ -142,8 +132,6 @@ class TestTimedTranscription:
         output = capsys.readouterr().out
         assert "Transcription aborted in" in output
 
-
-# -- Signal handler ----------------------------------------------------------
 
 class TestGracefulExitHandler:
     """Test the signal handler context manager."""
