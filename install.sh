@@ -445,6 +445,6 @@ main() {
 }
 
 # Allow sourcing without running main (for testing)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
     main "$@"
 fi
